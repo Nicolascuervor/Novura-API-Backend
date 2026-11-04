@@ -3,16 +3,18 @@ services:
     image: postgres:17-alpine
     container_name: pricecol-postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-pricecol_db}
-      POSTGRES_USER: ${POSTGRES_USER:-pricecol_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricecol_pass_2026}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD en su archivo .env}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pricecol_user} -d ${POSTGRES_DB:-pricecol_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-pricecol_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -25,13 +27,14 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      - DJANGO_DEBUG=True
-      - DJANGO_SECRET_KEY=pricecol-reproducible-nuclear-project-key-2026
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
       - USE_POSTGRES=true
       - POSTGRES_DB=${POSTGRES_DB:-pricecol_db}
-      - POSTGRES_USER=${POSTGRES_USER:-pricecol_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pricecol_pass_2026}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST=postgres-db
       - POSTGRES_PORT=5432
     volumes:
