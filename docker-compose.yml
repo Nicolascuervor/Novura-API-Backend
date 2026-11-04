@@ -1,0 +1,46 @@
+services:
+  postgres-db:
+    image: postgres:17-alpine
+    container_name: pricecol-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pricecol_db}
+      POSTGRES_USER: ${POSTGRES_USER:-pricecol_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricecol_pass_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pricecol_user} -d ${POSTGRES_DB:-pricecol_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pricecol-api:
+    build: .
+    container_name: pricecol-api-backend
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=pricecol-reproducible-nuclear-project-key-2026
+      - USE_POSTGRES=true
+      - POSTGRES_DB=${POSTGRES_DB:-pricecol_db}
+      - POSTGRES_USER=${POSTGRES_USER:-pricecol_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pricecol_pass_2026}
+      - POSTGRES_HOST=postgres-db
+      - POSTGRES_PORT=5432
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:

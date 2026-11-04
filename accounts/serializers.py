@@ -1,0 +1,231 @@
+"""
+Serializers de Registro, Inicio de Sesión JWT, Perfil de Actores (Consumidor, Reportante, Comercio)
+y Gestión de Moderación (Moderador).
+Cumple estrictamente con `django-architecture-enforcer` (cero lógica de negocio en serializers)
+y `django-security-auditor` (protección contra Mass Assignment e inyección XSS).
+"""
+
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from accounts.models import ActorRole, EstablishmentCorrectionRequest, UserProfile
+from accounts.services import sanitize_plain_text
+from catalog.models import Establishment
+from core_domain.entities import ReliabilityStatus
+from pricing.models import PriceReport
+
+User = get_user_model()
+
+
+class ActorRegistrationSerializer(serializers.Serializer):
+    """
+    Validación de entrada para el registro de cuentas de Actores (Tabla 4.1):
+    - CONSUMER (Consumidor)
+    - REPORTER (Reportante comunitario)
+    - MERCHANT (Comercio)
+    """
+
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=6)
+    role = serializers.ChoiceField(
+        choices=[
+            (ActorRole.CONSUMER.value, ActorRole.CONSUMER.label),
+            (ActorRole.REPORTER.value, ActorRole.REPORTER.label),
+            (ActorRole.MERCHANT.value, ActorRole.MERCHANT.label),
+        ],
+        default=ActorRole.REPORTER.value,
+    )
+    managed_establishment_id = serializers.PrimaryKeyRelatedField(
+        queryset=Establishment.objects.filter(is_active=True),
+        source="managed_establishment",
+        required=False,
+        allow_null=True,
+        help_text="Opcional al registrarse como MERCHANT: ID del establecimiento existente.",
+    )
+    accepted_data_policy = serializers.BooleanField(
+        help_text="Autorización obligatoria de tratamiento de datos personales (Ley 1581 de 2012)."
+    )
+
+    def validate_username(self, value: str) -> str:
+        cleaned = sanitize_plain_text(value)
+        if not cleaned:
+            raise serializers.ValidationError("El nombre de usuario no puede estar vacío ni contener etiquetas HTML.")
+        if User.objects.filter(username__iexact=cleaned).exists():
+            raise serializers.ValidationError("Este nombre de usuario ya está registrado.")
+        return cleaned
+
+    def validate_accepted_data_policy(self, value: bool) -> bool:
+        if not value:
+            raise serializers.ValidationError(
+                "Debes aceptar la política de tratamiento de datos personales (Ley 1581 de 2012) para crear una cuenta."
+            )
+        return value
+
+
+class PricecolTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Serializer JWT que incluye el rol del actor y bloquea cuentas suspendidas."""
+
+    def validate(self, attrs: dict) -> dict:
+        data = super().validate(attrs)
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
+
+        if profile.is_suspended:
+            raise serializers.ValidationError(
+                "Esta cuenta ha sido suspendida por un Moderador debido a infracciones de integridad."
+            )
+
+        data["user"] = {
+            "id": self.user.id,
+            "username": self.user.username,
+            "email": self.user.email,
+            "role": profile.role,
+            "role_display": profile.get_role_display(),
+            "managed_establishment_id": profile.managed_establishment_id,
+            "verified_reports_count": profile.verified_reports_count,
+        }
+        return data
+
+
+class ActorProfileSerializer(serializers.ModelSerializer):
+    """
+    Vista privada del propio perfil (`/api/v1/auth/me/`).
+    Blindado contra Mass Assignment (`red-team-pentester`): `role`, `managed_establishment`,
+    `verified_reports_count`, `rejected_reports_count` e `is_suspended` son estrictamente `read_only`.
+    """
+
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+    managed_establishment_name = serializers.CharField(
+        source="managed_establishment.name",
+        read_only=True,
+        default=None,
+    )
+    impact_summary = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            "username",
+            "email",
+            "role",
+            "role_display",
+            "managed_establishment",
+            "managed_establishment_name",
+            "verified_reports_count",
+            "rejected_reports_count",
+            "is_frequent_trusted_reporter",
+            "accepted_data_policy",
+            "data_policy_accepted_at",
+            "is_suspended",
+            "impact_summary",
+        )
+        read_only_fields = (
+            "username",
+            "email",
+            "role",
+            "role_display",
+            "managed_establishment",
+            "managed_establishment_name",
+            "verified_reports_count",
+            "rejected_reports_count",
+            "is_frequent_trusted_reporter",
+            "accepted_data_policy",
+            "data_policy_accepted_at",
+            "is_suspended",
+            "impact_summary",
+        )
+
+    def get_impact_summary(self, obj: UserProfile) -> str:
+        if obj.role == ActorRole.MERCHANT:
+            est = obj.managed_establishment.name if obj.managed_establishment else "Sin asignar"
+            return f"Perfil oficial de comercio activo ({est}). Puedes publicar precios oficiales y solicitar correcciones."
+        if obj.role == ActorRole.MODERATOR:
+            return "Rol administrativo activo para preservar la integridad de la comparación."
+        return (
+            f"Has aportado {obj.verified_reports_count} precios verificados que ayudan a los hogares del Quindío a ahorrar."
+        )
+
+
+class EstablishmentCorrectionRequestSerializer(serializers.ModelSerializer):
+    """Serializer para que un Comercio solicite corregir información errónea de su negocio (Tabla 4.1)."""
+
+    establishment_current_name = serializers.CharField(source="establishment.name", read_only=True)
+
+    class Meta:
+        model = EstablishmentCorrectionRequest
+        fields = (
+            "id",
+            "establishment",
+            "establishment_current_name",
+            "proposed_name",
+            "proposed_neighborhood",
+            "proposed_address",
+            "justification",
+            "status",
+            "moderator_notes",
+            "created_at",
+            "resolved_at",
+        )
+        read_only_fields = ("status", "moderator_notes", "created_at", "resolved_at")
+
+
+class ModeratorReviewReportSerializer(serializers.Serializer):
+    """Acción del Moderador para aprobar o rechazar un reporte dudoso/anómalo (Tabla 4.1)."""
+
+    new_status = serializers.ChoiceField(
+        choices=[
+            (ReliabilityStatus.VERIFIED.value, "Aprobar como Verificado (VERIFIED)"),
+            (ReliabilityStatus.ANOMALOUS.value, "Confirmar como Falso/Anómalo (ANOMALOUS)"),
+        ]
+    )
+    moderator_note = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+
+
+class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
+    """Vista administrativa para que el Moderador gestione cuentas y suspenda actores malintencionados."""
+
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            "id",
+            "username",
+            "email",
+            "role",
+            "managed_establishment",
+            "verified_reports_count",
+            "rejected_reports_count",
+            "is_suspended",
+            "created_at",
+        )
+        read_only_fields = ("username", "email", "verified_reports_count", "rejected_reports_count", "created_at")
+
+
+class ModeratorFlaggedPriceReportSerializer(serializers.ModelSerializer):
+    """Vista exclusiva del Moderador sobre reportes dudosos (`ANOMALOUS` o `LOW_CONFIDENCE`)."""
+
+    establishment_name = serializers.CharField(source="establishment.name", read_only=True)
+    presentation_label = serializers.CharField(source="presentation.__str__", read_only=True)
+
+    class Meta:
+        model = PriceReport
+        fields = (
+            "id",
+            "presentation",
+            "presentation_label",
+            "establishment",
+            "establishment_name",
+            "raw_price",
+            "normalized_ref_price",
+            "reference_unit_label",
+            "reliability_status",
+            "confidence_score",
+            "anomaly_notes",
+            "source_type",
+            "reported_at",
+        )
