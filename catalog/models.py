@@ -4,6 +4,7 @@ Soporta reconocimiento de productos en distintas presentaciones y denominaciones
 y normalización automática de unidades de medida (M-01).
 """
 
+from django.conf import settings
 from django.db import models
 
 from core_domain.entities import ProductCategory, UnitOfMeasure
@@ -13,6 +14,8 @@ class Establishment(models.Model):
     """
     Establecimiento comercial en Armenia y el departamento del Quindío
     (tienda de barrio, minimercado o supermercado).
+    Relación 1 a Muchos (`owner`): Un usuario con rol Comercio (`MERCHANT`) puede ser propietario
+    de uno o varios establecimientos y ejercer CRUD completo sobre ellos (con protección Anti-IDOR).
     Nota: Las coordenadas aquí corresponden exclusivamente a la ubicación pública del comercio,
     NUNCA al reporte ni al reportante (cumpliendo Ley 1581 y M-06).
     """
@@ -22,6 +25,14 @@ class Establishment(models.Model):
         MINIMARKET = "MINIMARKET", "Minimercado"
         SUPERMARKET = "SUPERMARKET", "Supermercado / Gran Superficie"
 
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="owned_establishments",
+        help_text="Usuario propietario/representante del establecimiento (relación 1 a muchos).",
+    )
     name = models.CharField(max_length=160, db_index=True)
     establishment_type = models.CharField(
         max_length=32,
@@ -34,6 +45,12 @@ class Establishment(models.Model):
     address = models.CharField(max_length=200)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    logo_image = models.ImageField(
+        upload_to="catalog/establishments/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Imagen o logo oficial del comercio sanitizado (JPEG/PNG/WEBP <= 5MB, sin EXIF).",
+    )
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -67,6 +84,12 @@ class Product(models.Model):
         help_text="Denominaciones regionales o sinónimos separados por coma para búsqueda rápida en góndola (EC-01).",
     )
     description = models.TextField(blank=True)
+    product_image = models.ImageField(
+        upload_to="catalog/products/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Imagen representativa del producto molde sanitizada (JPEG/PNG/WEBP <= 5MB, sin EXIF).",
+    )
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -99,6 +122,12 @@ class ProductPresentation(models.Model):
         max_length=16,
         choices=[(u.value, u.value) for u in UnitOfMeasure],
         default=UnitOfMeasure.GRAM.value,
+    )
+    reference_image = models.ImageField(
+        upload_to="catalog/presentations/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Imagen de referencia del producto sanitizada (JPEG/PNG/WEBP <= 5MB, sin EXIF).",
     )
     is_active = models.BooleanField(default=True, db_index=True)
 

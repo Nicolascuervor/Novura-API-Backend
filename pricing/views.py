@@ -6,6 +6,7 @@ Cumple estrictamente con `django-architecture-enforcer` y `django-security-audit
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, views, viewsets
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -18,6 +19,7 @@ from accounts.services import (
     update_actor_reputation_after_report,
 )
 from catalog.models import Product
+from catalog.services import InvalidImageError
 from core_domain.neutral_comparator import SortCriterion
 from pricing.models import PriceReport
 from pricing.serializers import (
@@ -33,10 +35,11 @@ class PriceReportViewSet(viewsets.ModelViewSet):
     Endpoint de registro ágil de precios en góndola (EC-01 <= 15s) y consulta de reportes públicos
     protegiendo la privacidad del reportante (Ley 1581 / M-06 = 1.00).
     Exige sesión iniciada para registrar (POST) según Tabla 4.1 (Reportante / Comercio),
-    valida propiedad sobre el establecimiento (Anti-BOLA) y sanitiza textos contra XSS.
+    valida propiedad sobre el establecimiento (Anti-BOLA) y sanitiza textos e imágenes (EXIF).
     """
 
     permission_classes = [CanReportPricesPermission]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "price_report"
     queryset = (
@@ -75,15 +78,22 @@ class PriceReportViewSet(viewsets.ModelViewSet):
         reporter_token = f"user-{request.user.pk}"
 
         use_case = ReportPriceUseCase()
-        report = use_case.execute(
-            presentation=data["presentation"],
-            establishment=data["establishment"],
-            raw_price=data["raw_price"],
-            reporter_token=reporter_token,
-            source_type=resolved_source,
-            is_promotional=data.get("is_promotional", False),
-            promotion_description=clean_promo_desc,
-        )
+        try:
+            report = use_case.execute(
+                presentation=data["presentation"],
+                establishment=data["establishment"],
+                raw_price=data["raw_price"],
+                reporter_token=reporter_token,
+                source_type=resolved_source,
+                is_promotional=data.get("is_promotional", False),
+                promotion_description=clean_promo_desc,
+                evidence_image_file=data.get("evidence_image"),
+            )
+        except InvalidImageError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         update_actor_reputation_after_report(
             profile=profile,
@@ -92,7 +102,7 @@ class PriceReportViewSet(viewsets.ModelViewSet):
             establishment=data["establishment"],
         )
 
-        receipt = PublicPriceReportReceiptSerializer(report)
+        receipt = PublicPriceReportReceiptSerializer(report, context={"request": request})
         return Response(receipt.data, status=status.HTTP_201_CREATED)
 
 

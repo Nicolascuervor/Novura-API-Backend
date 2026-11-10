@@ -54,6 +54,12 @@ class QuickPriceReportCreateSerializer(serializers.Serializer):
         allow_blank=True,
         default="",
     )
+    evidence_image = serializers.FileField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="Foto opcional de la etiqueta de precio o tirilla (JPEG/PNG/WEBP <= 5MB).",
+    )
 
 
 class PublicPriceReportReceiptSerializer(serializers.ModelSerializer):
@@ -63,6 +69,7 @@ class PublicPriceReportReceiptSerializer(serializers.ModelSerializer):
     Incluye autodescriptividad para que el reportante vea que su aporte fue procesado (ISO/IEC 25010).
     """
 
+    product = serializers.IntegerField(source="presentation.product_id", read_only=True)
     establishment_name = serializers.CharField(source="establishment.name", read_only=True)
     presentation_label = serializers.SerializerMethodField()
     user_feedback_message = serializers.SerializerMethodField()
@@ -71,6 +78,7 @@ class PublicPriceReportReceiptSerializer(serializers.ModelSerializer):
         model = PriceReport
         fields = (
             "id",
+            "product",
             "presentation",
             "presentation_label",
             "establishment",
@@ -78,10 +86,12 @@ class PublicPriceReportReceiptSerializer(serializers.ModelSerializer):
             "raw_price",
             "normalized_ref_price",
             "reference_unit_label",
+            "source_type",
             "reliability_status",
             "confidence_score",
             "is_promotional",
             "promotion_description",
+            "evidence_image",
             "reported_at",
             "user_feedback_message",
         )

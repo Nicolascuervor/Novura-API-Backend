@@ -4,8 +4,8 @@ Configurado para el Seminario Nuclear (Arquitectura de Software II y Modelos de 
 y endurecido según `django-security-auditor` (OWASP Top 10: sin credenciales hardcodeadas y con Rate Limiting).
 """
 
-from datetime import timedelta
 import os
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -107,6 +107,12 @@ else:
         }
     }
 
+# Autenticación: login estándar por email + contraseña (la API), y username para el panel /admin/
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.EmailAuthBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -128,6 +134,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Hardening de Cabeceras y Cookies (OWASP Top 10 - `django-security-auditor`)
@@ -170,6 +178,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    "UPDATE_LAST_LOGIN": True,
     "ALGORITHM": "HS256",
     "AUTH_HEADER_TYPES": ("Bearer",),
 }

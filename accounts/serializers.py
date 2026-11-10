@@ -56,6 +56,12 @@ class ActorRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError("Este nombre de usuario ya está registrado.")
         return cleaned
 
+    def validate_email(self, value: str) -> str:
+        normalized = value.strip().lower()
+        if User.objects.filter(email__iexact=normalized).exists():
+            raise serializers.ValidationError("Este correo electrónico ya está registrado.")
+        return normalized
+
     def validate_accepted_data_policy(self, value: bool) -> bool:
         if not value:
             raise serializers.ValidationError(
@@ -65,9 +71,21 @@ class ActorRegistrationSerializer(serializers.Serializer):
 
 
 class PricecolTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Serializer JWT que incluye el rol del actor y bloquea cuentas suspendidas."""
+    """
+    Serializer JWT minimalista con login estándar **email + contraseña**
+    (Principio de Minimización de Datos - Ley 1581 / OWASP):
+    Valida que la cuenta no esté suspendida y retorna exclusivamente `access` y `refresh`.
+    Los datos del perfil del Actor se consultan por separado en `GET /api/v1/auth/me/`.
+    """
+
+    username_field = "email"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["email"] = serializers.EmailField(write_only=True)
 
     def validate(self, attrs: dict) -> dict:
+        attrs["email"] = attrs["email"].strip().lower()
         data = super().validate(attrs)
         profile, _ = UserProfile.objects.get_or_create(user=self.user)
 
@@ -76,16 +94,14 @@ class PricecolTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "Esta cuenta ha sido suspendida por un Moderador debido a infracciones de integridad."
             )
 
-        data["user"] = {
-            "id": self.user.id,
-            "username": self.user.username,
-            "email": self.user.email,
-            "role": profile.role,
-            "role_display": profile.get_role_display(),
-            "managed_establishment_id": profile.managed_establishment_id,
-            "verified_reports_count": profile.verified_reports_count,
-        }
         return data
+
+
+class TokenPairResponseSerializer(serializers.Serializer):
+    """Esquema de respuesta exclusivo de tokens JWT (sin datos de usuario para evitar fugas de información)."""
+
+    access = serializers.CharField(read_only=True)
+    refresh = serializers.CharField(read_only=True)
 
 
 class ActorProfileSerializer(serializers.ModelSerializer):
@@ -95,58 +111,95 @@ class ActorProfileSerializer(serializers.ModelSerializer):
     `verified_reports_count`, `rejected_reports_count` e `is_suspended` son estrictamente `read_only`.
     """
 
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
+    last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
     role_display = serializers.CharField(source="get_role_display", read_only=True)
     managed_establishment_name = serializers.CharField(
         source="managed_establishment.name",
         read_only=True,
         default=None,
     )
+    owned_establishment_ids = serializers.SerializerMethodField()
     impact_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
         fields = (
+            "user_id",
             "username",
             "email",
+            "last_login",
             "role",
             "role_display",
             "managed_establishment",
             "managed_establishment_name",
+            "owned_establishment_ids",
             "verified_reports_count",
             "rejected_reports_count",
             "is_frequent_trusted_reporter",
+            "is_verified",
+            "verification_status",
             "accepted_data_policy",
             "data_policy_accepted_at",
             "is_suspended",
+            "profile_image",
             "impact_summary",
         )
         read_only_fields = (
+            "user_id",
             "username",
             "email",
+            "last_login",
             "role",
             "role_display",
             "managed_establishment",
             "managed_establishment_name",
+            "owned_establishment_ids",
             "verified_reports_count",
             "rejected_reports_count",
             "is_frequent_trusted_reporter",
+            "is_verified",
+            "verification_status",
             "accepted_data_policy",
             "data_policy_accepted_at",
             "is_suspended",
+            "profile_image",
             "impact_summary",
         )
+
+    def get_owned_establishment_ids(self, obj: UserProfile) -> list[int]:
+        ids = set(
+            Establishment.objects.filter(owner_id=obj.user_id, is_active=True).values_list("id", flat=True)
+        )
+        if obj.managed_establishment_id is not None:
+            ids.add(obj.managed_establishment_id)
+        return sorted(ids)
 
     def get_impact_summary(self, obj: UserProfile) -> str:
         if obj.role == ActorRole.MERCHANT:
             est = obj.managed_establishment.name if obj.managed_establishment else "Sin asignar"
-            return f"Perfil oficial de comercio activo ({est}). Puedes publicar precios oficiales y solicitar correcciones."
+            if not obj.is_verified:
+                return (
+                    f"Perfil de comercio ({est}) SIN VERIFICAR. Tus precios se publican como reportes "
+                    "comunitarios hasta que tu empresa sea verificada."
+                )
+            return f"Perfil oficial de comercio verificado ({est}). Puedes publicar precios oficiales y solicitar correcciones."
         if obj.role == ActorRole.MODERATOR:
             return "Rol administrativo activo para preservar la integridad de la comparación."
         return (
             f"Has aportado {obj.verified_reports_count} precios verificados que ayudan a los hogares del Quindío a ahorrar."
         )
+
+
+class ActorProfileImageUploadSerializer(serializers.Serializer):
+    """DTO de entrada para subir o actualizar la foto de perfil del usuario (`/api/v1/auth/me/`)."""
+
+    profile_image = serializers.FileField(
+        required=True,
+        help_text="Foto de perfil del usuario (JPEG, PNG o WEBP, máx. 5 MB, purga EXIF automática).",
+    )
 
 
 class EstablishmentCorrectionRequestSerializer(serializers.ModelSerializer):
@@ -189,6 +242,7 @@ class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
 
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
+    last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
 
     class Meta:
         model = UserProfile
@@ -196,14 +250,29 @@ class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
+            "last_login",
             "role",
             "managed_establishment",
             "verified_reports_count",
             "rejected_reports_count",
             "is_suspended",
+            "verification_status",
+            "is_verified",
+            "business_legal_name",
+            "business_tax_id",
+            "verified_at",
             "created_at",
         )
-        read_only_fields = ("username", "email", "verified_reports_count", "rejected_reports_count", "created_at")
+        read_only_fields = (
+            "username",
+            "email",
+            "last_login",
+            "verified_reports_count",
+            "rejected_reports_count",
+            "is_verified",
+            "verified_at",
+            "created_at",
+        )
 
 
 class ModeratorFlaggedPriceReportSerializer(serializers.ModelSerializer):

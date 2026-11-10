@@ -11,7 +11,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from accounts.models import ActorRole, UserProfile
+from accounts.models import ActorRole, UserProfile, VerificationStatus
 from catalog.models import Establishment, Product, ProductPresentation
 from core_domain.entities import ProductCategory, SourceType, UnitOfMeasure
 from pricing.services import ReportPriceUseCase
@@ -244,6 +244,12 @@ class Command(BaseCommand):
             if created:
                 user.set_password(pwd)
                 user.save()
+            # Don Chucho queda verificado para demostrar precios OFFICIAL_MERCHANT en la sustentación
+            demo_status = (
+                VerificationStatus.VERIFIED
+                if username == "comercio_don_chucho"
+                else VerificationStatus.UNVERIFIED
+            )
             UserProfile.objects.update_or_create(
                 user=user,
                 defaults={
@@ -251,6 +257,7 @@ class Command(BaseCommand):
                     "managed_establishment": est_obj,
                     "verified_reports_count": ver_count,
                     "accepted_data_policy": True,
+                    "verification_status": demo_status,
                 },
             )
 

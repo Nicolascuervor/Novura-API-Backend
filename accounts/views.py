@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status, views, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,6 +31,7 @@ from accounts.selectors import (
     get_or_create_actor_profile,
 )
 from accounts.serializers import (
+    ActorProfileImageUploadSerializer,
     ActorProfileSerializer,
     ActorRegistrationSerializer,
     EstablishmentCorrectionRequestSerializer,
@@ -37,6 +39,7 @@ from accounts.serializers import (
     ModeratorFlaggedPriceReportSerializer,
     ModeratorReviewReportSerializer,
     PricecolTokenObtainPairSerializer,
+    TokenPairResponseSerializer,
 )
 from accounts.services import (
     AccountSecurityDomainError,
@@ -44,7 +47,10 @@ from accounts.services import (
     create_merchant_correction_request,
     register_actor_account,
     review_flagged_price_report_by_moderator,
+    set_profile_verification_status_by_moderator,
+    update_actor_profile_image,
 )
+from catalog.services import InvalidImageError
 from pricing.models import PriceReport
 
 
@@ -60,9 +66,9 @@ class ActorRegistrationAPIView(views.APIView):
     serializer_class = ActorRegistrationSerializer
 
     @extend_schema(
-        summary="Registrar cuenta de Actor (Consumidor, Reportante o Comercio) con consentimiento Ley 1581",
+        summary="Registrar cuenta de Actor (Retorna únicamente tokens JWT access y refresh)",
         request=ActorRegistrationSerializer,
-        responses={201: ActorProfileSerializer},
+        responses={201: TokenPairResponseSerializer},
         tags=["auth-and-profiles"],
     )
     def post(self, request: Request) -> Response:
@@ -85,10 +91,8 @@ class ActorRegistrationAPIView(views.APIView):
         refresh = RefreshToken.for_user(profile.user)
         return Response(
             {
-                "message": "Cuenta creada exitosamente conforme a la Ley 1581 de 2012.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "profile": ActorProfileSerializer(profile).data,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -122,12 +126,13 @@ class PricecolTokenRefreshAPIView(TokenRefreshView):
 
 class CurrentActorProfileAPIView(generics.RetrieveUpdateAPIView):
     """
-    Consulta el perfil propio (`/api/v1/auth/me/`).
+    Consulta el perfil propio (`/api/v1/auth/me/`) y permite subir/actualizar la foto de perfil (`profile_image`).
     Blindado contra Mass Assignment (`ActorProfileSerializer` tiene campos sensibles como `read_only`).
     """
 
     serializer_class = ActorProfileSerializer
     permission_classes = [IsAuthenticatedAndNotSuspended]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_object(self) -> UserProfile:
         return get_or_create_actor_profile(user=self.request.user)
@@ -138,6 +143,71 @@ class CurrentActorProfileAPIView(generics.RetrieveUpdateAPIView):
     )
     def get(self, request: Request, *args, **kwargs) -> Response:
         return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Actualizar perfil propio (soporta subida de `profile_image` en multipart/form-data con purga EXIF)",
+        request=ActorProfileImageUploadSerializer,
+        responses={200: ActorProfileSerializer},
+        tags=["auth-and-profiles"],
+    )
+    def patch(self, request: Request, *args, **kwargs) -> Response:
+        if "profile_image" in request.data or "profile_image" in request.FILES:
+            profile = self.get_object()
+            img_serializer = ActorProfileImageUploadSerializer(data=request.data)
+            img_serializer.is_valid(raise_exception=True)
+            uploaded_file = img_serializer.validated_data["profile_image"]
+            try:
+                updated_profile = update_actor_profile_image(
+                    profile=profile,
+                    uploaded_file=uploaded_file,
+                    filename=getattr(uploaded_file, "name", ""),
+                )
+            except InvalidImageError as exc:
+                return Response(
+                    {"detail": str(exc)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                ActorProfileSerializer(updated_profile, context={"request": request}).data,
+                status=status.HTTP_200_OK,
+            )
+        return super().patch(request, *args, **kwargs)
+
+
+class CurrentActorAvatarUploadAPIView(views.APIView):
+    """Endpoint explícito `POST /api/v1/auth/me/avatar/` para subir o actualizar la foto de perfil."""
+
+    permission_classes = [IsAuthenticatedAndNotSuspended]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    @extend_schema(
+        summary="Subir o actualizar la foto de perfil del usuario autenticado (JPEG/PNG/WEBP <= 5MB, purga EXIF)",
+        request=ActorProfileImageUploadSerializer,
+        responses={200: ActorProfileSerializer},
+        tags=["auth-and-profiles"],
+    )
+    def post(self, request: Request) -> Response:
+        profile = get_or_create_actor_profile(user=request.user)
+        serializer = ActorProfileImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uploaded_file = serializer.validated_data["profile_image"]
+
+        try:
+            updated_profile = update_actor_profile_image(
+                profile=profile,
+                uploaded_file=uploaded_file,
+                filename=getattr(uploaded_file, "name", ""),
+            )
+        except InvalidImageError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            ActorProfileSerializer(updated_profile, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class MerchantCorrectionRequestViewSet(viewsets.ModelViewSet):
@@ -242,6 +312,16 @@ class ModeratorAccountManagementViewSet(viewsets.ModelViewSet):
         if target_profile.user.is_superuser and not request.user.is_superuser:
             raise PermissionDenied("Un moderador no puede alterar o suspender a un superusuario.")
         return super().partial_update(request, *args, **kwargs)
+
+    def perform_update(self, serializer: ModeratorAccountManagementSerializer) -> None:
+        previous_status = serializer.instance.verification_status
+        profile = serializer.save()
+        if profile.verification_status != previous_status:
+            set_profile_verification_status_by_moderator(
+                moderator_user=self.request.user,
+                profile=profile,
+                new_status=profile.verification_status,
+            )
 
 
 class ModeratorApproveCorrectionAPIView(views.APIView):

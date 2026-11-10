@@ -26,6 +26,7 @@ htmlcov/
 db.sqlite3
 db.sqlite3-journal
 *.log
+media/
 
 # ==============================================================================
 # 4. IDEs y Configuraciones de Editor Locales

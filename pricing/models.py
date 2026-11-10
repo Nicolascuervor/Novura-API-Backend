@@ -50,6 +50,12 @@ class PriceReport(models.Model):
     # Campos listos para el puerto de extensión del Módulo Comercial sin romper esquema (EC-05 / M-09)
     is_promotional = models.BooleanField(default=False, db_index=True)
     promotion_description = models.CharField(max_length=200, blank=True)
+    evidence_image = models.ImageField(
+        upload_to="pricing/evidence/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Foto de evidencia en góndola sanitizada (sin metadatos EXIF/GPS para cumplir Ley 1581 / M-06).",
+    )
 
     # Privacidad por Diseño (M-06 / Ley 1581): hash irreversible SHA-256 (sin PII ni GPS del reportante)
     reporter_hash = models.CharField(

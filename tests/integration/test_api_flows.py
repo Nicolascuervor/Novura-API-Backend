@@ -268,7 +268,7 @@ def test_actors_table_4_1_profiles_merchant_corrections_and_moderator_workflow()
 
     login_mod = anon_client.post(
         "/api/v1/auth/login/",
-        data={"username": "mod_quindio", "password": "ModPassword2026*"},
+        data={"email": "mod@pricecol.co", "password": "ModPassword2026*"},
         format="json",
     )
     assert login_mod.status_code == 200

@@ -10,12 +10,14 @@ resolviendo las tensiones arquitectónicas:
 import hashlib
 from datetime import timedelta
 from decimal import Decimal
+from typing import BinaryIO
 
 from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
 from catalog.models import Establishment, Product, ProductPresentation
+from catalog.services import ImageSecurityService
 from core_domain.anomaly_detector import AnomalyDetector, HistoricalPriceContext
 from core_domain.entities import (
     ComparablePriceEntry,
@@ -74,7 +76,15 @@ class ReportPriceUseCase:
         source_type: SourceType = SourceType.COMMUNITY_OCCASIONAL,
         is_promotional: bool = False,
         promotion_description: str = "",
+        evidence_image_file: BinaryIO | None = None,
     ) -> PriceReport:
+        sanitized_evidence = None
+        if evidence_image_file is not None:
+            sanitized_evidence = ImageSecurityService.validate_and_sanitize(
+                file_obj=evidence_image_file,
+                filename=getattr(evidence_image_file, "name", ""),
+            )
+
         now = timezone.now()
         reporter_hash = build_anonymous_reporter_hash(reporter_token)
 
@@ -144,6 +154,7 @@ class ReportPriceUseCase:
             anomaly_notes="; ".join(anomaly_assessment.reasons),
             is_promotional=is_promotional,
             promotion_description=promotion_description,
+            evidence_image=sanitized_evidence,
             reporter_hash=reporter_hash,
         )
 
