@@ -62,8 +62,16 @@ router.register(
 
 
 def health_check(_request):
-    """Healthcheck ligero para monitoreo de disponibilidad y contenedores (Fiabilidad - EC-04)."""
-    return JsonResponse({"status": "ok", "service": "pricecol-api-backend", "version": "1.1.0"})
+    """Healthcheck ligero para monitoreo de disponibilidad, caché y cola asíncrona Celery (Fiabilidad - EC-04)."""
+    return JsonResponse(
+        {
+            "status": "ok",
+            "service": "pricecol-api-backend",
+            "version": "1.1.0",
+            "cache_backend": settings.CACHES["default"]["BACKEND"],
+            "celery_configured": True,
+        }
+    )
 
 
 urlpatterns = [

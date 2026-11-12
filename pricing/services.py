@@ -53,11 +53,17 @@ def get_product_comparison_cache_version_key(product_id: int) -> str:
 def invalidate_product_comparison_cache(product_id: int) -> None:
     """
     Resuelve la tensión ATAM entre EC-02 (Actualidad del dato) y EC-04 (Caché de alta concurrencia):
-    Incrementa la versión de caché del producto inmediatamente cuando entra un nuevo precio válido.
+    Incrementa la versión de caché del producto inmediatamente cuando entra un nuevo precio válido
+    y programa en Celery (`transaction.on_commit`) el pre-calentamiento proactivo de los 3 rankings.
     """
     ver_key = get_product_comparison_cache_version_key(product_id)
     current_ver = cache.get(ver_key, 1)
     cache.set(ver_key, int(current_ver) + 1, timeout=86400)
+    cache.delete("pricecol:moderation:dashboard_summary")
+
+    from pricing.tasks import schedule_prewarm_product_comparison_cache
+
+    schedule_prewarm_product_comparison_cache(product_id)
 
 
 class ReportPriceUseCase:

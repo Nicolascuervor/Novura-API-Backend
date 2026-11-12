@@ -85,7 +85,9 @@ def record_audit_event(
         elif getattr(actor_user, "is_superuser", False) or getattr(actor_user, "is_staff", False):
             actor_role = ActorRole.MODERATOR
 
-    return AuditEventLog.objects.create(
+    from django.core.cache import cache
+
+    log_entry = AuditEventLog.objects.create(
         actor_user=resolved_user,
         actor_username=actor_username,
         actor_role=actor_role,
@@ -100,6 +102,8 @@ def record_audit_event(
         new_state=new_state or {},
         ip_hash=hash_ip_address(ip_address),
     )
+    cache.delete("pricecol:moderation:dashboard_summary")
+    return log_entry
 
 
 def generate_encoded_entity_id(model_cls: type[models.Model], seed_hint: str = "") -> int:

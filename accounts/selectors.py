@@ -130,8 +130,15 @@ def get_audit_event_logs_for_moderation(
 def get_moderation_dashboard_summary() -> dict[str, Any]:
     """
     Calcula en consultas agregadas los KPIs y contadores de estado del sistema
-    para el Panel de Administración y Auditoría del Moderador.
+    para el Panel de Administración y Auditoría del Moderador, con caché de 30s en Redis/Django Cache.
     """
+    from django.core.cache import cache
+
+    cache_key = "pricecol:moderation:dashboard_summary"
+    cached_summary = cache.get(cache_key)
+    if cached_summary is not None:
+        return cached_summary
+
     now = timezone.now()
     last_24h = now - timedelta(hours=24)
 
@@ -190,7 +197,7 @@ def get_moderation_dashboard_summary() -> dict[str, Any]:
         moderation_events=Count("id", filter=Q(module=AuditEventLog.AuditModule.MODERATION)),
     )
 
-    return {
+    summary_payload = {
         "accounts": profile_stats,
         "catalog": {
             "establishments": est_stats,
@@ -220,4 +227,6 @@ def get_moderation_dashboard_summary() -> dict[str, Any]:
             },
         },
     }
+    cache.set(cache_key, summary_payload, timeout=30)
+    return summary_payload
 

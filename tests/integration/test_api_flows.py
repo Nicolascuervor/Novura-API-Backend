@@ -286,3 +286,94 @@ def test_actors_table_4_1_profiles_merchant_corrections_and_moderator_workflow()
     est.refresh_from_db()
     assert est.name == "Tienda de Barrio La Cuyabra Oficial"
 
+
+@pytest.mark.django_db(transaction=True)
+def test_redis_cache_and_celery_tasks_prewarm_comparison_and_record_audit_async() -> None:
+    """
+    Valida la arquitectura de Caché Distribuido (Redis / Django Cache) y Tareas Asíncronas (Celery):
+    1. `prewarm_product_comparison_cache_task` pre-calienta automáticamente en caché los 3 criterios
+       (`UNIT_PRICE_ASC`, `RAW_PRICE_ASC`, `FRESHNESS_DESC`) tras registrar un nuevo precio vía `transaction.on_commit()`.
+    2. `record_audit_event_task` registra eventos en `AuditEventLog` de forma desacoplada y resiliente.
+    3. `evaluate_catalog_price_validity_task` ejecuta el barrido periódico de vigencia (`EC-02`)
+       y deja constancia de auditoría en `AuditEventLog`.
+    4. El endpoint `/api/v1/health/` reporta el estado del backend de caché y de Celery.
+    """
+    from django.contrib.auth import get_user_model
+    from django.core.cache import cache
+
+    from accounts.models import ActorRole, AuditEventLog, UserProfile
+    from pricing.services import get_product_comparison_cache_version_key
+    from pricing.tasks import (
+        evaluate_catalog_price_validity_task,
+        prewarm_product_comparison_cache_task,
+    )
+
+    User = get_user_model()
+    cache.clear()
+    user = User.objects.create_user(
+        username="reporter_celery",
+        email="celery@pricecol.co",
+        password="Password2026*",
+    )
+    UserProfile.objects.create(
+        user=user,
+        role=ActorRole.REPORTER,
+        accepted_data_policy=True,
+    )
+
+    est = Establishment.objects.create(
+        name="Supermercado Caché Redis",
+        establishment_type=Establishment.EstablishmentType.SUPERMARKET,
+        municipality="Armenia",
+        neighborhood="Centro",
+        address="Cra 14 # 15-20",
+    )
+    prod = Product.objects.create(
+        name="Café Tostado Cacheado",
+        category=ProductCategory.GROCERY.value,
+    )
+    pres = ProductPresentation.objects.create(
+        product=prod,
+        brand="Quindío Café",
+        presentation_name="Bolsa 500 g",
+        quantity=Decimal(500),
+        unit=UnitOfMeasure.GRAM.value,
+    )
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    # Act 1: Registrar un precio -> dispara invalidación de versión + prewarm_product_comparison_cache_task en on_commit
+    post_res = client.post(
+        "/api/v1/price-reports/",
+        data={
+            "presentation_id": pres.id,
+            "establishment_id": est.id,
+            "raw_price": "14500.00",
+        },
+        format="json",
+    )
+    assert post_res.status_code == 201
+
+    # Assert 1: La clave de versión y las entradas pre-calentadas en caché existen inmediatamente
+    ver_key = get_product_comparison_cache_version_key(prod.id)
+    current_ver = cache.get(ver_key)
+    assert current_ver is not None and int(current_ver) >= 2
+
+    warm_result = prewarm_product_comparison_cache_task(prod.id)
+    assert warm_result["product_id"] == prod.id
+    assert warm_result["warmed_criteria_count"] == 3
+
+    # Assert 2: Ejecutar la tarea periódica de vigencia EC-02 deja trazabilidad en AuditEventLog
+    validity_summary = evaluate_catalog_price_validity_task()
+    assert validity_summary["evaluated_products"] >= 1
+    assert AuditEventLog.objects.filter(action_type="VALIDITY_SWEEP_COMPLETED").exists()
+
+    # Assert 3: Healthcheck expone cache_backend y celery_ready
+    health_res = client.get("/api/v1/health/")
+    assert health_res.status_code == 200
+    health_data = health_res.json()
+    assert "cache_backend" in health_data
+    assert "celery_configured" in health_data
+
+

@@ -145,12 +145,38 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
 # Cache Configuration (EC-04: Lectura intensiva y picos de 500 usuarios concurrentes)
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "pricecol-high-concurrency-cache",
+# Soporta Redis distribuido (`USE_REDIS=True`) con fallback automático a `LocMemCache` en pruebas o desarrollo sin Redis.
+USE_REDIS = os.environ.get("USE_REDIS", "False").lower() == "true"
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+
+if USE_REDIS:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.DjangoCache",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "pricecol",
+            "TIMEOUT": 120,
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "pricecol-high-concurrency-cache",
+            "TIMEOUT": 120,
+        }
+    }
+
+# Celery & Background Tasks Configuration (EC-01 <= 15s, EC-02 Vigencia y Trazabilidad de Auditoría)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+# Si no se fuerza worker separado (`CELERY_TASK_ALWAYS_EAGER=False`), ejecuta tareas de forma resiliente
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "True").lower() != "false"
+CELERY_TASK_EAGER_PROPAGATES = True
 
 # Django REST Framework, Throttling & OpenAPI 3 Configuration
 REST_FRAMEWORK = {

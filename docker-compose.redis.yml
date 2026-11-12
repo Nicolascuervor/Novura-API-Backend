@@ -1,0 +1,15 @@
+# Docker Compose para levantar Redis 7 (Caché Distribuido y Broker de Celery) en desarrollo local
+# Uso: docker compose -f docker-compose.redis.yml up -d
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: pricecol_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - pricecol_redis_data:/data
+
+volumes:
+  pricecol_redis_data:
