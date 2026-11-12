@@ -152,7 +152,7 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
 if USE_REDIS:
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.redis.DjangoCache",
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": REDIS_URL,
             "KEY_PREFIX": "pricecol",
             "TIMEOUT": 120,
