@@ -6,8 +6,9 @@ Cumple estrictamente con:
 - `django-security-auditor`: Rate Limiting (`ScopedRateThrottle`) en Login y Registro + protección Anti-IDOR.
 """
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, status, views, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -18,7 +19,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from accounts.models import EstablishmentCorrectionRequest, UserProfile
+from accounts.models import AuditEventLog, EstablishmentCorrectionRequest, UserProfile
 from accounts.permissions import (
     IsAuthenticatedAndNotSuspended,
     IsMerchantActor,
@@ -26,14 +27,17 @@ from accounts.permissions import (
 )
 from accounts.selectors import (
     get_all_profiles_for_moderation,
+    get_audit_event_logs_for_moderation,
     get_correction_requests_for_actor,
     get_flagged_price_reports_for_moderation,
+    get_moderation_dashboard_summary,
     get_or_create_actor_profile,
 )
 from accounts.serializers import (
     ActorProfileImageUploadSerializer,
     ActorProfileSerializer,
     ActorRegistrationSerializer,
+    AuditEventLogSerializer,
     EstablishmentCorrectionRequestSerializer,
     ModeratorAccountManagementSerializer,
     ModeratorFlaggedPriceReportSerializer,
@@ -45,6 +49,7 @@ from accounts.services import (
     AccountSecurityDomainError,
     approve_merchant_correction_by_moderator,
     create_merchant_correction_request,
+    record_audit_event,
     register_actor_account,
     review_flagged_price_report_by_moderator,
     set_profile_verification_status_by_moderator,
@@ -303,6 +308,29 @@ class ModeratorAccountManagementViewSet(viewsets.ModelViewSet):
     queryset = get_all_profiles_for_moderation()
     http_method_names = ["get", "patch", "head", "options"]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        role = self.request.query_params.get("role", "").strip()
+        ver_status = self.request.query_params.get("verification_status", "").strip()
+        is_susp = self.request.query_params.get("is_suspended", "").strip().lower()
+        query = self.request.query_params.get("q", "").strip()
+
+        if role:
+            qs = qs.filter(role=role)
+        if ver_status:
+            qs = qs.filter(verification_status=ver_status)
+        if is_susp in ("true", "1", "yes"):
+            qs = qs.filter(is_suspended=True)
+        elif is_susp in ("false", "0", "no"):
+            qs = qs.filter(is_suspended=False)
+        if query:
+            qs = qs.filter(
+                Q(user__username__icontains=query)
+                | Q(user__email__icontains=query)
+                | Q(business_legal_name__icontains=query)
+            )
+        return qs
+
     @extend_schema(
         summary="Moderador: Gestionar cuentas de usuarios y suspender actores malintencionados (Tabla 4.1)",
         tags=["moderator-actor"],
@@ -315,7 +343,47 @@ class ModeratorAccountManagementViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer: ModeratorAccountManagementSerializer) -> None:
         previous_status = serializer.instance.verification_status
+        previous_suspended = serializer.instance.is_suspended
+        previous_role = serializer.instance.role
         profile = serializer.save()
+
+        if profile.is_suspended != previous_suspended:
+            action_code = "ACCOUNT_SUSPENDED" if profile.is_suspended else "ACCOUNT_REACTIVATED"
+            record_audit_event(
+                actor_user=self.request.user,
+                module=AuditEventLog.AuditModule.MODERATION,
+                action_type=action_code,
+                target_model="UserProfile",
+                target_id=profile.id,
+                target_repr=profile.user.username,
+                summary=(
+                    f"Moderador suspendió la cuenta '{profile.user.username}'."
+                    if profile.is_suspended
+                    else f"Moderador reactivó la cuenta '{profile.user.username}'."
+                ),
+                severity=(
+                    AuditEventLog.AuditSeverity.CRITICAL
+                    if profile.is_suspended
+                    else AuditEventLog.AuditSeverity.WARNING
+                ),
+                previous_state={"is_suspended": previous_suspended},
+                new_state={"is_suspended": profile.is_suspended},
+            )
+
+        if profile.role != previous_role:
+            record_audit_event(
+                actor_user=self.request.user,
+                module=AuditEventLog.AuditModule.MODERATION,
+                action_type="ACCOUNT_ROLE_CHANGED",
+                target_model="UserProfile",
+                target_id=profile.id,
+                target_repr=profile.user.username,
+                summary=f"Moderador cambió el rol de '{profile.user.username}' ({previous_role} -> {profile.role}).",
+                severity=AuditEventLog.AuditSeverity.WARNING,
+                previous_state={"role": previous_role},
+                new_state={"role": profile.role},
+            )
+
         if profile.verification_status != previous_status:
             set_profile_verification_status_by_moderator(
                 moderator_user=self.request.user,
@@ -347,3 +415,67 @@ class ModeratorApproveCorrectionAPIView(views.APIView):
             moderator_notes=str(request.data.get("moderator_notes", "")),
         )
         return Response(EstablishmentCorrectionRequestSerializer(approved).data, status=status.HTTP_200_OK)
+
+
+class ModeratorAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Vista de Auditoría Inmutable (*Audit Trail*) exclusiva para el Moderador (`MODERATOR`).
+    Permite analizar cada movimiento dentro de la app con filtros compuestos por módulo,
+    tipo de acción, severidad, actor, entidad objetivo, rango de fechas y texto libre.
+    Rechaza cualquier intento de mutación o borrado (`ReadOnlyModelViewSet` -> 405 en POST/PATCH/DELETE).
+    """
+
+    serializer_class = AuditEventLogSerializer
+    permission_classes = [IsModeratorActor]
+    queryset = AuditEventLog.objects.select_related("actor_user").all()
+
+    @extend_schema(
+        summary="Moderador: Consultar bitácora inmutable de auditoría de todos los movimientos de la app",
+        parameters=[
+            OpenApiParameter("module", str, description="Filtrar por módulo: AUTH, ACCOUNT, ESTABLISHMENT, CATALOG, PRICING, MODERATION."),
+            OpenApiParameter("action_type", str, description="Filtrar por tipo de acción (ej. USER_REGISTERED, ESTABLISHMENT_UPDATED, PRICE_REPORT_CREATED, ACCOUNT_SUSPENDED)."),
+            OpenApiParameter("severity", str, description="Filtrar por severidad: INFO, WARNING, CRITICAL."),
+            OpenApiParameter("actor_id", int, description="Filtrar por ID del usuario que ejecutó la acción."),
+            OpenApiParameter("actor_role", str, description="Filtrar por rol del actor (CONSUMER, REPORTER, MERCHANT, MODERATOR)."),
+            OpenApiParameter("target_model", str, description="Filtrar por modelo afectado (Establishment, Product, ProductPresentation, PriceReport, UserProfile)."),
+            OpenApiParameter("target_id", str, description="Filtrar por ID del objeto afectado."),
+            OpenApiParameter("date_from", str, description="Fecha/hora inicial ISO 8601 (ej. 2026-11-01)."),
+            OpenApiParameter("date_to", str, description="Fecha/hora final ISO 8601."),
+            OpenApiParameter("q", str, description="Búsqueda libre por descripción, usuario, objeto afectado o acción."),
+        ],
+        tags=["moderator-actor"],
+    )
+    def list(self, request: Request, *args, **kwargs) -> Response:
+        return super().list(request, *args, **kwargs)
+
+    def get_queryset(self):
+        params = self.request.query_params
+        return get_audit_event_logs_for_moderation(
+            module=params.get("module", ""),
+            action_type=params.get("action_type", ""),
+            severity=params.get("severity", ""),
+            actor_id=params.get("actor_id", ""),
+            actor_role=params.get("actor_role", ""),
+            target_model=params.get("target_model", ""),
+            target_id=params.get("target_id", ""),
+            date_from=params.get("date_from", ""),
+            date_to=params.get("date_to", ""),
+            query=params.get("q", ""),
+        )
+
+
+class ModeratorDashboardSummaryAPIView(views.APIView):
+    """
+    Resumen ejecutivo de métricas, salud de integridad y actividad de auditoría para el Panel del Moderador.
+    """
+
+    permission_classes = [IsModeratorActor]
+
+    @extend_schema(
+        summary="Moderador: Obtener resumen ejecutivo de métricas, anomalías y auditoría del sistema",
+        tags=["moderator-actor"],
+    )
+    def get(self, _request: Request) -> Response:
+        summary = get_moderation_dashboard_summary()
+        return Response(summary, status=status.HTTP_200_OK)
+

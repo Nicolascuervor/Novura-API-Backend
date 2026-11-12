@@ -21,7 +21,7 @@ from django.utils.html import strip_tags
 from PIL import Image, UnidentifiedImageError
 
 from accounts.models import ActorRole, UserProfile
-from catalog.models import Establishment, Product, ProductPresentation
+from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
 
 MAX_IMAGE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5 MB
 MAX_IMAGE_PIXELS_DEFAULT: int = 25_000_000  # 25 Megapíxeles
@@ -171,6 +171,30 @@ def update_product_representative_image(
     return product
 
 
+def update_payment_method_icon_image(
+    *,
+    payment_method: PaymentMethod,
+    uploaded_file: BinaryIO,
+    filename: str = "",
+) -> PaymentMethod:
+    """
+    Valida, sanitiza (purga EXIF/GPS, máx. 5 MB, JPEG/PNG/WEBP, UUIDv4) y persiste el icono
+    o logo oficial de un método de pago (`PaymentMethod.icon_image`).
+    """
+    sanitized_content = ImageSecurityService.validate_and_sanitize(
+        file_obj=uploaded_file,
+        filename=filename,
+    )
+    if payment_method.icon_image:
+        payment_method.icon_image.delete(save=False)
+    payment_method.icon_image.save(
+        sanitized_content.name,
+        sanitized_content,
+        save=True,
+    )
+    return payment_method
+
+
 def _clean_text(value: str | None) -> str:
     if not value:
         return ""
@@ -206,6 +230,27 @@ def can_actor_manage_establishment(*, profile: UserProfile, establishment: Estab
     )
 
 
+def _sync_establishment_payment_methods(
+    establishment: Establishment,
+    validated_data: dict[str, Any],
+) -> None:
+    """
+    Sincroniza la relación muchos-a-muchos `payment_methods` si el payload incluye
+    `payment_method_codes` (ej. `["cash", "nequi", "bre_b"]`).
+    """
+    if "payment_method_codes" not in validated_data:
+        return
+    raw_codes = validated_data.get("payment_method_codes") or []
+    normalized_codes = [str(c).strip().lower() for c in raw_codes if str(c).strip()]
+    methods = list(
+        PaymentMethod.objects.filter(
+            code__in=normalized_codes,
+            is_active=True,
+        )
+    )
+    establishment.payment_methods.set(methods)
+
+
 @transaction.atomic
 def create_establishment_for_actor(
     *,
@@ -235,11 +280,37 @@ def create_establishment_for_actor(
         longitude=validated_data.get("longitude"),
         is_active=True,
     )
+    _sync_establishment_payment_methods(establishment, validated_data)
 
     if profile.role == ActorRole.MERCHANT and profile.managed_establishment_id is None:
         profile.managed_establishment = establishment
         profile.save(update_fields=["managed_establishment"])
 
+    from accounts.models import AuditEventLog
+    from accounts.services import record_audit_event
+
+    record_audit_event(
+        actor_user=profile.user,
+        module=AuditEventLog.AuditModule.ESTABLISHMENT,
+        action_type="ESTABLISHMENT_CREATED",
+        target_model="Establishment",
+        target_id=establishment.id,
+        target_repr=establishment.name,
+        summary=f"Se creó el establecimiento '{establishment.name}' en {establishment.municipality}.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        new_state={
+            "id": establishment.id,
+            "name": establishment.name,
+            "establishment_type": establishment.establishment_type,
+            "municipality": establishment.municipality,
+            "neighborhood": establishment.neighborhood,
+            "address": establishment.address,
+            "owner_id": establishment.owner_id,
+            "payment_method_codes": list(
+                establishment.payment_methods.filter(is_active=True).values_list("code", flat=True)
+            ),
+        },
+    )
     return establishment
 
 
@@ -260,6 +331,18 @@ def update_establishment_for_actor(
             "o un Moderador pueden editar sus datos."
         )
 
+    previous_state = {
+        "name": establishment.name,
+        "establishment_type": establishment.establishment_type,
+        "municipality": establishment.municipality,
+        "neighborhood": establishment.neighborhood,
+        "address": establishment.address,
+        "is_active": establishment.is_active,
+        "payment_method_codes": list(
+            establishment.payment_methods.filter(is_active=True).values_list("code", flat=True)
+        ),
+    }
+
     for text_field in ("name", "municipality", "neighborhood", "address"):
         if text_field in validated_data:
             setattr(establishment, text_field, _clean_text(validated_data[text_field]))
@@ -269,6 +352,34 @@ def update_establishment_for_actor(
             setattr(establishment, other_field, validated_data[other_field])
 
     establishment.save()
+    _sync_establishment_payment_methods(establishment, validated_data)
+
+    from accounts.models import AuditEventLog
+    from accounts.services import record_audit_event
+
+    new_state = {
+        "name": establishment.name,
+        "establishment_type": establishment.establishment_type,
+        "municipality": establishment.municipality,
+        "neighborhood": establishment.neighborhood,
+        "address": establishment.address,
+        "is_active": establishment.is_active,
+        "payment_method_codes": list(
+            establishment.payment_methods.filter(is_active=True).values_list("code", flat=True)
+        ),
+    }
+    record_audit_event(
+        actor_user=profile.user,
+        module=AuditEventLog.AuditModule.ESTABLISHMENT,
+        action_type="ESTABLISHMENT_UPDATED",
+        target_model="Establishment",
+        target_id=establishment.id,
+        target_repr=establishment.name,
+        summary=f"Se actualizaron los datos del establecimiento '{establishment.name}'.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        previous_state=previous_state,
+        new_state=new_state,
+    )
     return establishment
 
 
@@ -288,6 +399,22 @@ def deactivate_establishment_for_actor(
         )
     establishment.is_active = False
     establishment.save(update_fields=["is_active"])
+
+    from accounts.models import AuditEventLog
+    from accounts.services import record_audit_event
+
+    record_audit_event(
+        actor_user=profile.user,
+        module=AuditEventLog.AuditModule.ESTABLISHMENT,
+        action_type="ESTABLISHMENT_DEACTIVATED",
+        target_model="Establishment",
+        target_id=establishment.id,
+        target_repr=establishment.name,
+        summary=f"Se desactivó el establecimiento '{establishment.name}'.",
+        severity=AuditEventLog.AuditSeverity.WARNING,
+        previous_state={"is_active": True},
+        new_state={"is_active": False},
+    )
     return establishment
 
 
@@ -318,5 +445,19 @@ def update_establishment_logo_image(
         sanitized_content.name,
         sanitized_content,
         save=True,
+    )
+    from accounts.models import AuditEventLog
+    from accounts.services import record_audit_event
+
+    record_audit_event(
+        actor_user=profile.user,
+        module=AuditEventLog.AuditModule.ESTABLISHMENT,
+        action_type="ESTABLISHMENT_LOGO_UPDATED",
+        target_model="Establishment",
+        target_id=establishment.id,
+        target_repr=establishment.name,
+        summary=f"Se actualizó el logo del establecimiento '{establishment.name}'.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        new_state={"logo_image": str(establishment.logo_image)},
     )
     return establishment

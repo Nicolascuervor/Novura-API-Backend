@@ -9,7 +9,12 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from accounts.models import ActorRole, EstablishmentCorrectionRequest, UserProfile
+from accounts.models import (
+    ActorRole,
+    AuditEventLog,
+    EstablishmentCorrectionRequest,
+    UserProfile,
+)
 from accounts.services import sanitize_plain_text
 from catalog.models import Establishment
 from core_domain.entities import ReliabilityStatus
@@ -240,6 +245,7 @@ class ModeratorReviewReportSerializer(serializers.Serializer):
 class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
     """Vista administrativa para que el Moderador gestione cuentas y suspenda actores malintencionados."""
 
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
     last_login = serializers.DateTimeField(source="user.last_login", read_only=True)
@@ -248,6 +254,7 @@ class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = (
             "id",
+            "user_id",
             "username",
             "email",
             "last_login",
@@ -264,6 +271,7 @@ class ModeratorAccountManagementSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = (
+            "user_id",
             "username",
             "email",
             "last_login",
@@ -298,3 +306,37 @@ class ModeratorFlaggedPriceReportSerializer(serializers.ModelSerializer):
             "source_type",
             "reported_at",
         )
+
+
+class AuditEventLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer de solo lectura para la Bitácora Inmutable de Auditoría (`AuditEventLog`).
+    Exclusivo para el rol administrativo `MODERATOR` (ISO/IEC 25010:2023 - No Repudio y Trazabilidad).
+    """
+
+    module_display = serializers.CharField(source="get_module_display", read_only=True)
+    severity_display = serializers.CharField(source="get_severity_display", read_only=True)
+
+    class Meta:
+        model = AuditEventLog
+        fields = (
+            "id",
+            "actor_user",
+            "actor_username",
+            "actor_role",
+            "module",
+            "module_display",
+            "action_type",
+            "severity",
+            "severity_display",
+            "target_model",
+            "target_id",
+            "target_repr",
+            "summary",
+            "previous_state",
+            "new_state",
+            "ip_hash",
+            "created_at",
+        )
+        read_only_fields = fields
+

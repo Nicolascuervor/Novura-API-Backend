@@ -474,5 +474,112 @@ class TestImageUploadEndpointsIntegrationTDD:
         saved_prod_img = Image.open(product.product_image.path)
         assert dict(saved_prod_img.getexif()) == {}
 
+    def test_payment_methods_catalog_m2m_assignment_filtering_and_icon_upload_security(
+        self,
+        settings,
+        tmp_path,
+    ) -> None:
+        # Arrange
+        settings.MEDIA_ROOT = tmp_path
+        moderator_user = User.objects.create_user(
+            username="mod_pagos",
+            email="mod_pagos@pricecol.co",
+            password="SecurePassword123!",
+            is_staff=True,
+        )
+        UserProfile.objects.create(
+            user=moderator_user,
+            role=ActorRole.MODERATOR,
+            accepted_data_policy=True,
+        )
+
+        merchant_user = User.objects.create_user(
+            username="comercio_pagos",
+            email="pagos_tienda@pricecol.co",
+            password="SecurePassword123!",
+        )
+        UserProfile.objects.create(
+            user=merchant_user,
+            role=ActorRole.MERCHANT,
+            accepted_data_policy=True,
+        )
+
+        client = APIClient()
+
+        # Act 1: El MODERATOR crea métodos de pago ("cash", "nequi", "bre_b") y sube icono con EXIF a "bre_b"
+        client.force_authenticate(user=moderator_user)
+        pm_cash = client.post(
+            "/api/v1/payment-methods/",
+            data={"code": "cash", "name": "Efectivo", "category": "CASH"},
+            format="json",
+        )
+        pm_nequi = client.post(
+            "/api/v1/payment-methods/",
+            data={"code": "nequi", "name": "Nequi", "category": "DIGITAL_WALLET"},
+            format="json",
+        )
+        pm_breb = client.post(
+            "/api/v1/payment-methods/",
+            data={"code": "bre_b", "name": "Bre-B", "category": "DIGITAL_WALLET"},
+            format="json",
+        )
+        assert pm_cash.status_code == 201
+        assert pm_nequi.status_code == 201
+        assert pm_breb.status_code == 201
+
+        breb_id = pm_breb.json()["id"]
+        icon_bytes = _build_image_bytes(fmt="JPEG", with_gps_exif=True)
+        res_icon = client.post(
+            f"/api/v1/payment-methods/{breb_id}/image/",
+            data={"icon_image": SimpleUploadedFile("breb_gps.jpg", icon_bytes, content_type="image/jpeg")},
+            format="multipart",
+        )
+        assert res_icon.status_code == 200
+        assert res_icon.json()["icon_image"] is not None
+        assert "breb_gps" not in res_icon.json()["icon_image"]
+
+        # Act 2: Un MERCHANT intenta crear un método de pago global -> 403 Forbidden
+        client.force_authenticate(user=merchant_user)
+        res_forbidden_pm = client.post(
+            "/api/v1/payment-methods/",
+            data={"code": "crypto", "name": "Bitcoin", "category": "DIGITAL_WALLET"},
+            format="json",
+        )
+        assert res_forbidden_pm.status_code == 403
+
+        # Act 3: El MERCHANT crea un establecimiento asignando `payment_method_codes: ["cash", "nequi"]`
+        est_res = client.post(
+            "/api/v1/establishments/",
+            data={
+                "name": "Minimercado El Café",
+                "establishment_type": "MINIMARKET",
+                "municipality": "Armenia",
+                "neighborhood": "Laureles",
+                "address": "Calle 20N # 14-12",
+                "payment_method_codes": ["cash", "nequi"],
+            },
+            format="json",
+        )
+        assert est_res.status_code == 201
+        est_id = est_res.json()["id"]
+        assert set(est_res.json()["payment_method_codes"]) == {"cash", "nequi"}
+        assert len(est_res.json()["payment_methods"]) == 2
+
+        # Act 4: El MERCHANT actualiza su establecimiento agregando `bre_b`
+        patch_est = client.patch(
+            f"/api/v1/establishments/{est_id}/",
+            data={"payment_method_codes": ["cash", "nequi", "bre_b"]},
+            format="json",
+        )
+        assert patch_est.status_code == 200
+        assert set(patch_est.json()["payment_method_codes"]) == {"cash", "nequi", "bre_b"}
+
+        # Act 5: Filtrar establecimientos por método de pago `?payment_method=bre_b`
+        filter_res = client.get("/api/v1/establishments/?payment_method=bre_b")
+        assert filter_res.status_code == 200
+        filtered_ids = [item["id"] for item in filter_res.json()["results"]]
+        assert est_id in filtered_ids
+
+
 
 

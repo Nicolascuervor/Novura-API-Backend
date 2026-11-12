@@ -11,9 +11,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from accounts.models import AuditEventLog
 from accounts.permissions import CanReportPricesPermission
 from accounts.selectors import get_or_create_actor_profile
 from accounts.services import (
+    record_audit_event,
     resolve_verified_source_type_for_actor,
     sanitize_plain_text,
     update_actor_reputation_after_report,
@@ -100,6 +102,36 @@ class PriceReportViewSet(viewsets.ModelViewSet):
             report=report,
             presentation=data["presentation"],
             establishment=data["establishment"],
+        )
+
+        record_audit_event(
+            actor_user=request.user,
+            module=AuditEventLog.AuditModule.PRICING,
+            action_type="PRICE_REPORT_CREATED",
+            target_model="PriceReport",
+            target_id=report.id,
+            target_repr=f"{data['presentation']} @ {data['establishment'].name}",
+            summary=(
+                f"Reporte de precio #{report.id} (${report.raw_price} COP) en '{data['establishment'].name}' "
+                f"clasificado como {report.reliability_status} ({report.source_type})."
+            ),
+            severity=(
+                AuditEventLog.AuditSeverity.WARNING
+                if report.reliability_status in ("LOW_CONFIDENCE", "ANOMALOUS")
+                else AuditEventLog.AuditSeverity.INFO
+            ),
+            new_state={
+                "report_id": report.id,
+                "presentation_id": report.presentation_id,
+                "establishment_id": report.establishment_id,
+                "raw_price": str(report.raw_price),
+                "normalized_ref_price": str(report.normalized_ref_price),
+                "reference_unit_label": report.reference_unit_label,
+                "reliability_status": report.reliability_status,
+                "confidence_score": str(report.confidence_score),
+                "source_type": report.source_type,
+                "is_promotional": report.is_promotional,
+            },
         )
 
         receipt = PublicPriceReportReceiptSerializer(report, context={"request": request})

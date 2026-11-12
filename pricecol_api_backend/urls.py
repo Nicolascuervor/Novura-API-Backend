@@ -23,6 +23,8 @@ from accounts.views import (
     MerchantCorrectionRequestViewSet,
     ModeratorAccountManagementViewSet,
     ModeratorApproveCorrectionAPIView,
+    ModeratorAuditLogViewSet,
+    ModeratorDashboardSummaryAPIView,
     ModeratorFlaggedReportsListAPIView,
     ModeratorReviewReportAPIView,
     PricecolLoginAPIView,
@@ -30,6 +32,7 @@ from accounts.views import (
 )
 from catalog.views import (
     EstablishmentViewSet,
+    PaymentMethodViewSet,
     ProductPresentationViewSet,
     ProductViewSet,
 )
@@ -37,6 +40,7 @@ from pricing.views import PriceReportViewSet, ProductPriceComparisonAPIView
 
 router = DefaultRouter()
 router.register(r"establishments", EstablishmentViewSet, basename="establishment")
+router.register(r"payment-methods", PaymentMethodViewSet, basename="payment-method")
 router.register(r"products", ProductViewSet, basename="product")
 router.register(r"presentations", ProductPresentationViewSet, basename="presentation")
 router.register(r"price-reports", PriceReportViewSet, basename="price-report")
@@ -49,6 +53,11 @@ router.register(
     r"moderation/accounts",
     ModeratorAccountManagementViewSet,
     basename="moderation-account",
+)
+router.register(
+    r"moderation/audit-logs",
+    ModeratorAuditLogViewSet,
+    basename="moderation-audit-log",
 )
 
 
@@ -66,7 +75,12 @@ urlpatterns = [
     path("api/v1/auth/refresh/", PricecolTokenRefreshAPIView.as_view(), name="auth-refresh"),
     path("api/v1/auth/me/", CurrentActorProfileAPIView.as_view(), name="auth-me"),
     path("api/v1/auth/me/avatar/", CurrentActorAvatarUploadAPIView.as_view(), name="auth-me-avatar"),
-    # Endpoints de Moderador (Tabla 4.1: reportes dudosos y correcciones de comercios)
+    # Endpoints de Moderador (Tabla 4.1: reportes dudosos, correcciones de comercios y auditoría)
+    path(
+        "api/v1/moderation/dashboard-summary/",
+        ModeratorDashboardSummaryAPIView.as_view(),
+        name="moderation-dashboard-summary",
+    ),
     path(
         "api/v1/moderation/flagged-reports/",
         ModeratorFlaggedReportsListAPIView.as_view(),

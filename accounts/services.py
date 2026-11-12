@@ -20,7 +20,13 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.html import strip_tags
 
-from accounts.models import ActorRole, EstablishmentCorrectionRequest, UserProfile
+from accounts.models import (
+    ActorRole,
+    AuditEventLog,
+    EstablishmentCorrectionRequest,
+    UserProfile,
+    VerificationStatus,
+)
 from catalog.models import Establishment, ProductPresentation
 from catalog.services import ImageSecurityService, user_owns_establishment
 from core_domain.entities import ReliabilityStatus, SourceType
@@ -38,6 +44,62 @@ ENCODED_ID_SPAN = MAX_ENCODED_ID - MIN_ENCODED_ID + 1
 
 class AccountSecurityDomainError(PermissionError):
     """Excepción de dominio cuando un actor intenta violar reglas de propiedad (IDOR / BOLA) o seguridad."""
+
+
+def hash_ip_address(raw_ip: str | None) -> str:
+    """Genera un hash SHA-256 con salt de una IP para auditoría sin almacenar PII cruda (Ley 1581)."""
+    if not raw_ip or not raw_ip.strip():
+        return ""
+    salted = f"{settings.SECRET_KEY}:ip:{raw_ip.strip()}"
+    return hashlib.sha256(salted.encode("utf-8")).hexdigest()
+
+
+def record_audit_event(
+    *,
+    actor_user: AbstractBaseUser | None = None,
+    module: str,
+    action_type: str,
+    target_model: str,
+    target_id: str | int,
+    target_repr: str = "",
+    summary: str,
+    severity: str = AuditEventLog.AuditSeverity.INFO,
+    previous_state: dict | None = None,
+    new_state: dict | None = None,
+    ip_address: str | None = None,
+) -> AuditEventLog:
+    """
+    Registra un evento inmutable en la bitácora de auditoría (`AuditEventLog`).
+    Cumple con ISO/IEC 25010:2023 (Seguridad: No Repudio, Responsabilidad y Trazabilidad) y OWASP A09.
+    """
+    actor_username = "sistema"
+    actor_role = "SYSTEM"
+    resolved_user = None
+
+    if actor_user is not None and getattr(actor_user, "is_authenticated", False):
+        resolved_user = actor_user
+        actor_username = getattr(actor_user, "username", None) or f"user-{actor_user.pk}"
+        profile = UserProfile.objects.filter(user=actor_user).only("role").first()
+        if profile is not None:
+            actor_role = profile.role
+        elif getattr(actor_user, "is_superuser", False) or getattr(actor_user, "is_staff", False):
+            actor_role = ActorRole.MODERATOR
+
+    return AuditEventLog.objects.create(
+        actor_user=resolved_user,
+        actor_username=actor_username,
+        actor_role=actor_role,
+        module=module,
+        action_type=action_type,
+        severity=severity,
+        target_model=target_model,
+        target_id=str(target_id),
+        target_repr=sanitize_plain_text(target_repr)[:220],
+        summary=sanitize_plain_text(summary)[:320],
+        previous_state=previous_state or {},
+        new_state=new_state or {},
+        ip_hash=hash_ip_address(ip_address),
+    )
 
 
 def generate_encoded_entity_id(model_cls: type[models.Model], seed_hint: str = "") -> int:
@@ -117,6 +179,24 @@ def register_actor_account(
     if target_establishment is not None and target_establishment.owner_id is None:
         target_establishment.owner = user
         target_establishment.save(update_fields=["owner"])
+
+    record_audit_event(
+        actor_user=user,
+        module=AuditEventLog.AuditModule.AUTH,
+        action_type="USER_REGISTERED",
+        target_model="UserProfile",
+        target_id=profile.id,
+        target_repr=f"{user.username} ({role})",
+        summary=f"Nuevo registro de cuenta '{user.username}' con rol {role}.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        new_state={
+            "user_id": user.id,
+            "profile_id": profile.id,
+            "username": user.username,
+            "role": role,
+            "managed_establishment_id": target_establishment.id if target_establishment else None,
+        },
+    )
     return profile
 
 
@@ -212,7 +292,7 @@ def create_merchant_correction_request(
             "Operación rechazada (Anti-IDOR): Solo puedes solicitar correcciones para tu propio establecimiento asignado."
         )
 
-    return EstablishmentCorrectionRequest.objects.create(
+    correction = EstablishmentCorrectionRequest.objects.create(
         merchant_user=merchant_user,
         establishment=establishment,
         proposed_name=sanitize_plain_text(proposed_name),
@@ -220,6 +300,24 @@ def create_merchant_correction_request(
         proposed_address=sanitize_plain_text(proposed_address),
         justification=sanitize_plain_text(justification),
     )
+    record_audit_event(
+        actor_user=merchant_user,
+        module=AuditEventLog.AuditModule.MODERATION,
+        action_type="CORRECTION_REQUEST_CREATED",
+        target_model="EstablishmentCorrectionRequest",
+        target_id=correction.id,
+        target_repr=establishment.name,
+        summary=f"Solicitud de corrección creada para '{establishment.name}'.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        new_state={
+            "establishment_id": establishment.id,
+            "proposed_name": correction.proposed_name,
+            "proposed_neighborhood": correction.proposed_neighborhood,
+            "proposed_address": correction.proposed_address,
+            "status": correction.status,
+        },
+    )
+    return correction
 
 
 @transaction.atomic
@@ -231,6 +329,8 @@ def review_flagged_price_report_by_moderator(
     moderator_note: str = "",
 ) -> PriceReport:
     """Servicio transaccional del Moderador para aprobar o confirmar como anómalo un reporte dudoso."""
+    previous_status = report.reliability_status
+    previous_confidence = str(report.confidence_score)
     clean_note = sanitize_plain_text(moderator_note)
     report.reliability_status = new_status
     report.confidence_score = (
@@ -242,6 +342,29 @@ def review_flagged_price_report_by_moderator(
     report.save(update_fields=["reliability_status", "confidence_score", "anomaly_notes"])
 
     invalidate_product_comparison_cache(report.presentation.product_id)
+    record_audit_event(
+        actor_user=moderator_user,
+        module=AuditEventLog.AuditModule.MODERATION,
+        action_type="FLAGGED_REPORT_REVIEWED",
+        target_model="PriceReport",
+        target_id=report.id,
+        target_repr=f"{report.presentation} @ {report.establishment.name}",
+        summary=f"Moderador revisó reporte #{report.id} ({previous_status} -> {new_status}).",
+        severity=(
+            AuditEventLog.AuditSeverity.WARNING
+            if new_status == ReliabilityStatus.ANOMALOUS.value
+            else AuditEventLog.AuditSeverity.INFO
+        ),
+        previous_state={
+            "reliability_status": previous_status,
+            "confidence_score": previous_confidence,
+        },
+        new_state={
+            "reliability_status": new_status,
+            "confidence_score": str(report.confidence_score),
+            "moderator_note": clean_note,
+        },
+    )
     return report
 
 
@@ -254,6 +377,11 @@ def approve_merchant_correction_by_moderator(
 ) -> EstablishmentCorrectionRequest:
     """Servicio transaccional del Moderador para aplicar una corrección solicitada por un Comercio."""
     est = correction.establishment
+    previous_est_state = {
+        "name": est.name,
+        "neighborhood": est.neighborhood,
+        "address": est.address,
+    }
 
     if correction.proposed_name:
         est.name = sanitize_plain_text(correction.proposed_name)
@@ -271,6 +399,25 @@ def approve_merchant_correction_by_moderator(
         or "Corrección verificada y aplicada por moderación."
     )
     correction.save()
+
+    record_audit_event(
+        actor_user=moderator_user,
+        module=AuditEventLog.AuditModule.MODERATION,
+        action_type="CORRECTION_REQUEST_RESOLVED",
+        target_model="EstablishmentCorrectionRequest",
+        target_id=correction.id,
+        target_repr=est.name,
+        summary=f"Moderador aprobó solicitud de corrección #{correction.id} sobre '{est.name}'.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        previous_state=previous_est_state,
+        new_state={
+            "name": est.name,
+            "neighborhood": est.neighborhood,
+            "address": est.address,
+            "status": correction.status,
+            "moderator_notes": correction.moderator_notes,
+        },
+    )
     return correction
 
 
@@ -287,8 +434,7 @@ def set_profile_verification_status_by_moderator(
     Deja trazabilidad (quién y cuándo). El flujo automático futuro (correo corporativo / NIT)
     deberá reutilizar este mismo servicio.
     """
-    from accounts.models import VerificationStatus
-
+    previous_status = profile.verification_status
     profile.verification_status = new_status
     if new_status in (VerificationStatus.VERIFIED, VerificationStatus.REJECTED):
         profile.verified_by = moderator_user
@@ -300,6 +446,23 @@ def set_profile_verification_status_by_moderator(
     if clean_notes:
         profile.verification_notes = clean_notes
     profile.save()
+
+    record_audit_event(
+        actor_user=moderator_user,
+        module=AuditEventLog.AuditModule.MODERATION,
+        action_type="MERCHANT_VERIFICATION_CHANGED",
+        target_model="UserProfile",
+        target_id=profile.id,
+        target_repr=profile.user.username,
+        summary=f"Estado de verificación de '{profile.user.username}' cambiado de {previous_status} a {new_status}.",
+        severity=(
+            AuditEventLog.AuditSeverity.WARNING
+            if new_status == VerificationStatus.REJECTED
+            else AuditEventLog.AuditSeverity.INFO
+        ),
+        previous_state={"verification_status": previous_status},
+        new_state={"verification_status": new_status, "notes": clean_notes},
+    )
     return profile
 
 
@@ -324,5 +487,16 @@ def update_actor_profile_image(
         sanitized_content.name,
         sanitized_content,
         save=True,
+    )
+    record_audit_event(
+        actor_user=profile.user,
+        module=AuditEventLog.AuditModule.ACCOUNT,
+        action_type="AVATAR_UPLOADED",
+        target_model="UserProfile",
+        target_id=profile.id,
+        target_repr=profile.user.username,
+        summary=f"El usuario '{profile.user.username}' actualizó su foto de perfil.",
+        severity=AuditEventLog.AuditSeverity.INFO,
+        new_state={"profile_image": str(profile.profile_image)},
     )
     return profile

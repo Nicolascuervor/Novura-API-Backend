@@ -4,14 +4,50 @@ Serializers de la API del Catálogo.
 
 from rest_framework import serializers
 
-from catalog.models import Establishment, Product, ProductPresentation
+from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    """Serializer del catálogo oficial de métodos de pago (`catalog_paymentmethod`)."""
+
+    category_display = serializers.CharField(
+        source="get_category_display",
+        read_only=True,
+    )
+
+    class Meta:
+        model = PaymentMethod
+        fields = (
+            "id",
+            "code",
+            "name",
+            "category",
+            "category_display",
+            "icon_image",
+            "display_order",
+            "is_active",
+        )
+        read_only_fields = (
+            "id",
+            "category_display",
+            "icon_image",
+        )
+
+
+class PaymentMethodIconUploadSerializer(serializers.Serializer):
+    """DTO de entrada para subir o actualizar el icono oficial de un método de pago (`PaymentMethod`)."""
+
+    icon_image = serializers.FileField(
+        required=True,
+        help_text="Archivo de imagen o icono del método de pago (JPEG, PNG o WEBP, máx. 5 MB, purga EXIF).",
+    )
 
 
 class EstablishmentSerializer(serializers.ModelSerializer):
     """
     Serializer del directorio de establecimientos (tiendas de barrio, minimercados y supermercados).
-    Incluye `owner` (relación 1 a muchos con `User`) y `owner_username` para identificar a qué
-    comercio pertenece cada sucursal.
+    Incluye `owner` (relación 1 a muchos con `User`), `payment_methods` (objetos detallados) y
+    `payment_method_codes` (códigos aceptados para lectura y escritura dinámica).
     """
 
     owner_username = serializers.CharField(
@@ -22,6 +58,13 @@ class EstablishmentSerializer(serializers.ModelSerializer):
     establishment_type_display = serializers.CharField(
         source="get_establishment_type_display",
         read_only=True,
+    )
+    payment_methods = PaymentMethodSerializer(many=True, read_only=True)
+    payment_method_codes = serializers.ListField(
+        child=serializers.SlugField(max_length=40),
+        required=False,
+        write_only=True,
+        help_text="Lista de códigos de métodos de pago aceptados (ej. ['cash', 'nequi', 'bre_b']).",
     )
 
     class Meta:
@@ -39,6 +82,8 @@ class EstablishmentSerializer(serializers.ModelSerializer):
             "latitude",
             "longitude",
             "logo_image",
+            "payment_methods",
+            "payment_method_codes",
             "is_active",
         )
         read_only_fields = (
@@ -47,7 +92,15 @@ class EstablishmentSerializer(serializers.ModelSerializer):
             "owner_username",
             "establishment_type_display",
             "logo_image",
+            "payment_methods",
         )
+
+    def to_representation(self, instance: Establishment) -> dict:
+        data = super().to_representation(instance)
+        data["payment_method_codes"] = [
+            pm["code"] for pm in data.get("payment_methods", [])
+        ]
+        return data
 
 
 class EstablishmentLogoImageUploadSerializer(serializers.Serializer):

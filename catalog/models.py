@@ -10,6 +10,49 @@ from django.db import models
 from core_domain.entities import ProductCategory, UnitOfMeasure
 
 
+class PaymentMethod(models.Model):
+    """
+    Catálogo normalizado (3NF) de medios de pago aceptados por los establecimientos comerciales
+    en Armenia y el Quindío (Efectivo, Nequi, Daviplata, Bre-B, QR Bancolombia, Visa, Mastercard, etc.).
+    """
+
+    class PaymentCategory(models.TextChoices):
+        CASH = "CASH", "Efectivo"
+        DIGITAL_WALLET = "DIGITAL_WALLET", "Billetera Digital / Transferencia Inmediata"
+        CARD = "CARD", "Tarjeta Débito o Crédito"
+        CREDIT = "CREDIT", "Cupo / Financiación Directa"
+        VOUCHER = "VOUCHER", "Bonos / Cajas de Compensación"
+
+    code = models.SlugField(
+        max_length=40,
+        unique=True,
+        db_index=True,
+        help_text="Código único estable (ej. cash, nequi, daviplata, bre_b, qr_bancolombia, visa).",
+    )
+    name = models.CharField(max_length=100, unique=True, db_index=True)
+    category = models.CharField(
+        max_length=32,
+        choices=PaymentCategory.choices,
+        default=PaymentCategory.DIGITAL_WALLET,
+        db_index=True,
+    )
+    icon_image = models.ImageField(
+        upload_to="catalog/payment_methods/%Y/%m/",
+        null=True,
+        blank=True,
+        help_text="Icono o logo oficial del método de pago sanitizado (JPEG/PNG/WEBP <= 5MB, sin EXIF).",
+    )
+    display_order = models.PositiveSmallIntegerField(default=100, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+
 class Establishment(models.Model):
     """
     Establecimiento comercial en Armenia y el departamento del Quindío
@@ -50,6 +93,12 @@ class Establishment(models.Model):
         null=True,
         blank=True,
         help_text="Imagen o logo oficial del comercio sanitizado (JPEG/PNG/WEBP <= 5MB, sin EXIF).",
+    )
+    payment_methods = models.ManyToManyField(
+        PaymentMethod,
+        blank=True,
+        related_name="establishments",
+        help_text="Métodos de pago válidos aceptados por este establecimiento comercial.",
     )
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

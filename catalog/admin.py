@@ -1,13 +1,22 @@
 from django.contrib import admin
 
-from catalog.models import Establishment, Product, ProductPresentation
+from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+
+
+@admin.register(PaymentMethod)
+class PaymentMethodAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "category", "display_order", "is_active")
+    list_filter = ("category", "is_active")
+    search_fields = ("name", "code")
+    ordering = ("display_order", "name")
 
 
 @admin.register(Establishment)
 class EstablishmentAdmin(admin.ModelAdmin):
-    list_display = ("name", "establishment_type", "neighborhood", "municipality", "is_active")
+    list_display = ("name", "establishment_type", "neighborhood", "municipality", "owner", "is_active")
     list_filter = ("establishment_type", "municipality", "is_active")
     search_fields = ("name", "neighborhood", "address")
+    filter_horizontal = ("payment_methods",)
 
 
 @admin.register(Product)
