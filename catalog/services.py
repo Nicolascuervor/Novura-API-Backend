@@ -22,6 +22,7 @@ from PIL import Image, UnidentifiedImageError
 
 from accounts.models import ActorRole, UserProfile
 from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+from pricecol_api_backend.http_cache import bump_catalog_cache_version
 
 MAX_IMAGE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5 MB
 MAX_IMAGE_PIXELS_DEFAULT: int = 25_000_000  # 25 Megapíxeles
@@ -144,6 +145,7 @@ def update_presentation_reference_image(
         sanitized_content,
         save=True,
     )
+    bump_catalog_cache_version()
     return presentation
 
 
@@ -168,6 +170,7 @@ def update_product_representative_image(
         sanitized_content,
         save=True,
     )
+    bump_catalog_cache_version()
     return product
 
 
@@ -192,6 +195,7 @@ def update_payment_method_icon_image(
         sanitized_content,
         save=True,
     )
+    bump_catalog_cache_version()
     return payment_method
 
 
@@ -311,6 +315,7 @@ def create_establishment_for_actor(
             ),
         },
     )
+    bump_catalog_cache_version()
     return establishment
 
 
@@ -380,6 +385,7 @@ def update_establishment_for_actor(
         previous_state=previous_state,
         new_state=new_state,
     )
+    bump_catalog_cache_version()
     return establishment
 
 
@@ -415,6 +421,7 @@ def deactivate_establishment_for_actor(
         previous_state={"is_active": True},
         new_state={"is_active": False},
     )
+    bump_catalog_cache_version()
     return establishment
 
 
@@ -460,4 +467,5 @@ def update_establishment_logo_image(
         severity=AuditEventLog.AuditSeverity.INFO,
         new_state={"logo_image": str(establishment.logo_image)},
     )
+    bump_catalog_cache_version()
     return establishment

@@ -403,6 +403,9 @@ def approve_merchant_correction_by_moderator(
         or "Corrección verificada y aplicada por moderación."
     )
     correction.save()
+    from pricecol_api_backend.http_cache import bump_catalog_cache_version
+
+    bump_catalog_cache_version()
 
     record_audit_event(
         actor_user=moderator_user,

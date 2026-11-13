@@ -377,3 +377,128 @@ def test_redis_cache_and_celery_tasks_prewarm_comparison_and_record_audit_async(
     assert "celery_configured" in health_data
 
 
+@pytest.mark.django_db(transaction=True)
+def test_http_proxy_cache_headers_etag_304_not_modified_and_private_no_store_protection() -> None:
+    """
+    Valida el sistema de Caché Proxy / HTTP Gateway & Client Cache (EC-02, EC-04, OWASP Web Cache Deception):
+    1. Los endpoints públicos de lectura (`/api/v1/payment-methods/`, `/api/v1/products/`, `/api/v1/establishments/`
+       y `/api/v1/products/{id}/compare/`) emiten cabeceras `Cache-Control: public, max-age=..., s-maxage=..., stale-while-revalidate=...`
+       y un `ETag` determinístico vinculado a la versión en Redis.
+    2. Cuando el cliente o Proxy envía `If-None-Match` con el `ETag` vigente, el backend responde inmediatamente
+       `304 Not Modified` con 0 bytes de cuerpo, evitando tráfico y re-serialización innecesaria.
+    3. Cuando entra un nuevo precio (`POST /api/v1/price-reports/`) o se edita un ítem del catálogo, el `ETag`
+       cambia automáticamente y una petición con el `ETag` viejo recibe `200 OK` con datos frescos (EC-02).
+    4. Los endpoints privados (`/api/v1/auth/me/`, `/api/v1/moderation/*`, `?mine=true`) emiten estrictamente
+       `Cache-Control: no-store, no-cache, private, must-revalidate` para impedir fugas en proxies compartidos.
+    """
+    from django.contrib.auth import get_user_model
+    from django.core.cache import cache
+
+    from accounts.models import ActorRole, UserProfile
+
+    User = get_user_model()
+    cache.clear()
+
+    user = User.objects.create_user(
+        username="reporter_http_cache",
+        email="httpcache@pricecol.co",
+        password="Password2026*",
+    )
+    UserProfile.objects.create(
+        user=user,
+        role=ActorRole.REPORTER,
+        accepted_data_policy=True,
+    )
+
+    est = Establishment.objects.create(
+        name="Supermercado Proxy Cache",
+        establishment_type=Establishment.EstablishmentType.SUPERMARKET,
+        municipality="Armenia",
+        neighborhood="Laureles",
+        address="Av Bolívar # 20N-15",
+    )
+    prod = Product.objects.create(
+        name="Arroz Proxy Cache",
+        category=ProductCategory.GROCERY.value,
+    )
+    pres = ProductPresentation.objects.create(
+        product=prod,
+        brand="Roa",
+        presentation_name="Bolsa 1 kg",
+        quantity=Decimal(1000),
+        unit=UnitOfMeasure.GRAM.value,
+    )
+
+    anon_client = APIClient()
+
+    # 1. Consultar el comparador público -> debe emitir Cache-Control public + ETag
+    cmp_res_1 = anon_client.get(f"/api/v1/products/{prod.id}/compare/")
+    assert cmp_res_1.status_code == 200
+    assert "public" in cmp_res_1.headers.get("Cache-Control", "")
+    assert "s-maxage=" in cmp_res_1.headers.get("Cache-Control", "")
+    etag_1 = cmp_res_1.headers.get("ETag")
+    assert etag_1 is not None and etag_1.startswith('W/"')
+
+    # 2. Segunda petición con `If-None-Match: <etag_1>` -> debe responder 304 Not Modified con 0 bytes
+    cmp_res_304 = anon_client.get(
+        f"/api/v1/products/{prod.id}/compare/",
+        HTTP_IF_NONE_MATCH=etag_1,
+    )
+    assert cmp_res_304.status_code == 304
+    assert cmp_res_304.content == b""
+
+    # 3. Un usuario reporta un nuevo precio -> invalida versión y cambia el ETag automáticamente
+    auth_client = APIClient()
+    auth_client.force_authenticate(user=user)
+    post_rep = auth_client.post(
+        "/api/v1/price-reports/",
+        data={
+            "presentation_id": pres.id,
+            "establishment_id": est.id,
+            "raw_price": "4300.00",
+        },
+        format="json",
+    )
+    assert post_rep.status_code == 201
+
+    # Consultar de nuevo enviando el ETag viejo (`etag_1`) -> NO debe dar 304, sino 200 OK con nuevo ETag
+    cmp_res_2 = anon_client.get(
+        f"/api/v1/products/{prod.id}/compare/",
+        HTTP_IF_NONE_MATCH=etag_1,
+    )
+    assert cmp_res_2.status_code == 200
+    etag_2 = cmp_res_2.headers.get("ETag")
+    assert etag_2 is not None and etag_2 != etag_1
+    assert cmp_res_2.json()["total_valid_results"] == 1
+
+    # Y enviar el nuevo `etag_2` vuelve a dar 304 Not Modified
+    cmp_res_304_again = anon_client.get(
+        f"/api/v1/products/{prod.id}/compare/",
+        HTTP_IF_NONE_MATCH=etag_2,
+    )
+    assert cmp_res_304_again.status_code == 304
+
+    # 4. Catálogo público (`/api/v1/payment-methods/`, `/api/v1/establishments/`) también soporta ETag + 304
+    pm_res = anon_client.get("/api/v1/payment-methods/")
+    assert pm_res.status_code == 200
+    assert "public" in pm_res.headers.get("Cache-Control", "")
+    pm_etag = pm_res.headers.get("ETag")
+    assert pm_etag is not None
+    pm_304 = anon_client.get("/api/v1/payment-methods/", HTTP_IF_NONE_MATCH=pm_etag)
+    assert pm_304.status_code == 304
+
+    # 5. Protección Anti-Cache-Deception: endpoints privados (`/api/v1/auth/me/`, `?mine=true`) usan `private, no-store`
+    me_res = auth_client.get("/api/v1/auth/me/")
+    assert me_res.status_code == 200
+    me_cc = me_res.headers.get("Cache-Control", "")
+    assert "private" in me_cc and "no-store" in me_cc
+    assert "public" not in me_cc
+
+    mine_res = auth_client.get("/api/v1/establishments/?mine=true")
+    assert mine_res.status_code == 200
+    mine_cc = mine_res.headers.get("Cache-Control", "")
+    assert "private" in mine_cc and "no-store" in mine_cc
+    assert "public" not in mine_cc
+
+
+

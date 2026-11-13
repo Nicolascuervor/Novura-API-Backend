@@ -43,6 +43,7 @@ from catalog.services import (
     update_presentation_reference_image,
     update_product_representative_image,
 )
+from pricecol_api_backend.http_cache import bump_catalog_cache_version
 
 
 class EstablishmentViewSet(viewsets.ModelViewSet):
@@ -274,6 +275,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer) -> None:
         product = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -300,6 +302,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             "is_active": instance.is_active,
         }
         product = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -405,6 +408,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         """Borrado lógico para preservar la integridad referencial de reportes históricos."""
         instance.is_active = False
         instance.save(update_fields=["is_active"])
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -460,6 +464,7 @@ class ProductPresentationViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer) -> None:
         presentation = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -491,6 +496,7 @@ class ProductPresentationViewSet(viewsets.ModelViewSet):
             "is_active": instance.is_active,
         }
         presentation = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -515,6 +521,7 @@ class ProductPresentationViewSet(viewsets.ModelViewSet):
         """Borrado lógico de la presentación."""
         instance.is_active = False
         instance.save(update_fields=["is_active"])
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -644,6 +651,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer) -> None:
         pm = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -665,6 +673,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
             "is_active": instance.is_active,
         }
         pm = serializer.save()
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
@@ -682,6 +691,7 @@ class PaymentMethodViewSet(viewsets.ModelViewSet):
         """Borrado lógico del medio de pago."""
         instance.is_active = False
         instance.save(update_fields=["is_active"])
+        bump_catalog_cache_version()
         record_audit_event(
             actor_user=self.request.user,
             module=AuditEventLog.AuditModule.CATALOG,
