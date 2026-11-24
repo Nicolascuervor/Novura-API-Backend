@@ -32,7 +32,7 @@ PUBLIC_CATALOG_CACHE_CONTROL: str = (
 IMMUTABLE_MEDIA_CACHE_CONTROL: str = "public, max-age=604800, immutable"
 PRIVATE_NO_STORE_CACHE_CONTROL: str = "no-store, no-cache, private, must-revalidate"
 
-_COMPARE_PATH_RE = re.compile(r"^/api/v1/products/(?P<product_id>\d+)/compare/?$")
+_COMPARE_PATH_RE = re.compile(r"^/api/v1/products/(?P<product_id>\d+)/(compare|price-history)/?$")
 _PUBLIC_CATALOG_PREFIXES: tuple[str, ...] = (
     "/api/v1/payment-methods/",
     "/api/v1/products/",

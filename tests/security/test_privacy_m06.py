@@ -91,6 +91,7 @@ def test_m06_all_public_endpoints_protect_reporter_privacy_and_gps() -> None:
         ("GET", "/api/v1/products/"),
         ("GET", f"/api/v1/products/{prod.id}/"),
         ("GET", f"/api/v1/products/{prod.id}/compare/"),
+        ("GET", f"/api/v1/products/{prod.id}/price-history/"),
         ("GET", "/api/v1/presentations/"),
         ("GET", "/api/v1/price-reports/"),
         ("GET", f"/api/v1/price-reports/{report.id}/"),

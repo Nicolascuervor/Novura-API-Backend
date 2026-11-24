@@ -23,13 +23,19 @@ from accounts.services import (
 from catalog.models import Product
 from catalog.services import InvalidImageError
 from core_domain.neutral_comparator import SortCriterion
+from core_domain.price_history import InvalidPriceHistoryWindowError
 from pricing.models import PriceReport
 from pricing.serializers import (
     ProductComparisonResponseSerializer,
+    ProductPriceHistoryResponseSerializer,
     PublicPriceReportReceiptSerializer,
     QuickPriceReportCreateSerializer,
 )
-from pricing.services import ComparePricesQueryService, ReportPriceUseCase
+from pricing.services import (
+    ComparePricesQueryService,
+    PriceHistoryQueryService,
+    ReportPriceUseCase,
+)
 
 
 class PriceReportViewSet(viewsets.ModelViewSet):
@@ -211,3 +217,110 @@ class ProductPriceComparisonAPIView(views.APIView):
 
         response_serializer = ProductComparisonResponseSerializer(payload)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class ProductPriceHistoryAPIView(views.APIView):
+    """
+    Endpoint de historial y tendencia de precios de hasta 90 días por producto y establecimiento(s)
+    (Opción A2 del Anexo 1 — Escenario EC-08 y ADR-13).
+    Conserva los cambios de precio sin sobrescribir valores anteriores (Append-Only), distingue el origen
+    (`source_type`) y estado de confiabilidad (`reliability_status`) de cada punto, soporta comparar dos o más
+    establecimientos en la misma gráfica y protege la identidad del reportante (Ley 1581 / M-06 = 1.00).
+    """
+
+    @extend_schema(
+        summary="Consultar historial y tendencia de precios de los últimos 90 días (A2 / EC-08 / ADR-13)",
+        parameters=[
+            OpenApiParameter(
+                "days",
+                int,
+                required=False,
+                default=90,
+                description="Ventana histórica en días (1 a 90 días; por defecto 90 días según EC-08).",
+            ),
+            OpenApiParameter(
+                "establishment_id",
+                int,
+                required=False,
+                description="ID de un establecimiento específico para consultar su serie histórica.",
+            ),
+            OpenApiParameter(
+                "establishment_ids",
+                str,
+                required=False,
+                description="Lista de IDs de establecimientos separados por coma (ej. '1,2') para comparar tendencias en la misma gráfica.",
+            ),
+            OpenApiParameter(
+                "include_low_confidence",
+                bool,
+                required=False,
+                default=True,
+                description="Incluir puntos con estado LOW_CONFIDENCE marcados con `requires_warning=true`.",
+            ),
+        ],
+        responses={200: ProductPriceHistoryResponseSerializer},
+    )
+    def get(self, request: Request, product_id: int) -> Response:
+        product = get_object_or_404(Product, pk=product_id, is_active=True)
+
+        raw_days = request.query_params.get("days", "90")
+        try:
+            window_days = int(raw_days)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "El parámetro 'days' debe ser un número entero entre 1 y 90."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        selected_establishments: set[int] = set()
+        single_est = request.query_params.get("establishment_id")
+        multi_est = request.query_params.get("establishment_ids")
+
+        try:
+            if single_est:
+                selected_establishments.add(int(single_est))
+            if multi_est:
+                for token in multi_est.split(","):
+                    cleaned = token.strip()
+                    if cleaned:
+                        selected_establishments.add(int(cleaned))
+        except ValueError:
+            return Response(
+                {"detail": "Los identificadores de establecimiento deben ser enteros válidos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        include_low_conf = request.query_params.get("include_low_confidence", "true").lower() != "false"
+
+        history_service = PriceHistoryQueryService()
+        try:
+            history_output = history_service.get_product_history(
+                product_id=product.id,
+                window_days=window_days,
+                establishment_ids=selected_establishments or None,
+                include_low_confidence=include_low_conf,
+            )
+        except InvalidPriceHistoryWindowError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payload = {
+            "product_id": product.id,
+            "product_name": product.name,
+            "window_days": history_output.window_days,
+            "cutoff_start_at": history_output.cutoff_start_at,
+            "evaluated_at": history_output.evaluated_at,
+            "privacy_statement": (
+                "Serie histórica anonimizada conforme a la Ley 1581 de 2012 (M-06 = 1.00): "
+                "ningún punto permite identificar qué reportante registró cada precio."
+            ),
+            "total_points": history_output.total_points,
+            "excluded_out_of_window_count": history_output.excluded_out_of_window_count,
+            "excluded_anomalous_count": history_output.excluded_anomalous_count,
+            "establishment_series": history_output.establishment_series,
+        }
+
+        serializer = ProductPriceHistoryResponseSerializer(payload)
+        return Response(serializer.data, status=status.HTTP_200_OK)

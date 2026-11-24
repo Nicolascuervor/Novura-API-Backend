@@ -36,7 +36,11 @@ from catalog.views import (
     ProductPresentationViewSet,
     ProductViewSet,
 )
-from pricing.views import PriceReportViewSet, ProductPriceComparisonAPIView
+from pricing.views import (
+    PriceReportViewSet,
+    ProductPriceComparisonAPIView,
+    ProductPriceHistoryAPIView,
+)
 
 router = DefaultRouter()
 router.register(r"establishments", EstablishmentViewSet, basename="establishment")
@@ -109,6 +113,12 @@ urlpatterns = [
         "api/v1/products/<int:product_id>/compare/",
         ProductPriceComparisonAPIView.as_view(),
         name="product-price-compare",
+    ),
+    # Endpoint de historial y tendencia de precios de 90 días (Ampliación Corte 3: Opción A2 / EC-08)
+    path(
+        "api/v1/products/<int:product_id>/price-history/",
+        ProductPriceHistoryAPIView.as_view(),
+        name="product-price-history",
     ),
     path("api/v1/", include(router.urls)),
     # Documentación estándar OpenAPI 3 (Mínimo exigible de la Guía)

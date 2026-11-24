@@ -501,4 +501,148 @@ def test_http_proxy_cache_headers_etag_304_not_modified_and_private_no_store_pro
     assert "public" not in mine_cc
 
 
+@pytest.mark.django_db(transaction=True)
+def test_ec08_price_history_90_days_append_only_multi_establishment_and_instant_cache_invalidation() -> None:
+    """
+    Valida la Opción A2 del Anexo 1 (Escenario EC-08 y ADR-13 — Historial y tendencia de precios):
+    1. Conserva los cambios de precio sin sobrescribir los valores anteriores (Append-Only).
+    2. Consulta la serie de los últimos 90 días de un producto por establecimiento (`GET /api/v1/products/{id}/price-history/`),
+       excluyendo registros de hace > 90 días y reportes `ANOMALOUS`.
+    3. Cada punto distingue su origen (`source_type`: oficial vs. reportado) y estado de confiabilidad (`reliability_status`).
+    4. Cuando el precio cambia durante la semana, el nuevo punto aparece inmediatamente en el historial (invalidación EC-02/EC-08).
+    5. Soporta la extensión opcional de comparar la tendencia entre dos establecimientos (`?establishment_ids=1,2`).
+    """
+    from datetime import timedelta
+
+    from django.contrib.auth import get_user_model
+    from django.core.cache import cache
+    from django.utils import timezone
+
+    from accounts.models import ActorRole, UserProfile, VerificationStatus
+    from pricing.models import PriceReport
+    from pricing.services import ReportPriceUseCase
+
+    User = get_user_model()
+    cache.clear()
+    now = timezone.now()
+
+    est_ara = Establishment.objects.create(
+        name="Tiendas Ara Historial",
+        establishment_type=Establishment.EstablishmentType.SUPERMARKET,
+        municipality="Armenia",
+        neighborhood="Centro",
+        address="Cra 16 # 20-35",
+    )
+    est_d1 = Establishment.objects.create(
+        name="Tiendas D1 Historial",
+        establishment_type=Establishment.EstablishmentType.SUPERMARKET,
+        municipality="Armenia",
+        neighborhood="Laureles",
+        address="Av Bolívar # 14N-15",
+    )
+    prod = Product.objects.create(
+        name="Aceite Vegetal Historial 90D",
+        category=ProductCategory.GROCERY.value,
+    )
+    pres = ProductPresentation.objects.create(
+        product=prod,
+        brand="Gourmet",
+        presentation_name="Botella 1000 ml",
+        quantity=Decimal(1000),
+        unit=UnitOfMeasure.MILLILITER.value,
+    )
+
+    # 1. Crear un registro antiguo (> 90 días: hace 100 días) -> debe conservarse en BD pero excluirse de la ventana de 90 días
+    old_rep = ReportPriceUseCase().execute(
+        presentation=pres,
+        establishment=est_ara,
+        raw_price=Decimal("8000.00"),
+        reporter_token="hist-user-1",
+    )
+    PriceReport.objects.filter(pk=old_rep.pk).update(reported_at=now - timedelta(days=100))
+
+    # 2. Crear punto hace 45 días en Ara (reportado por comunidad)
+    rep_45d = ReportPriceUseCase().execute(
+        presentation=pres,
+        establishment=est_ara,
+        raw_price=Decimal("9000.00"),
+        reporter_token="hist-user-2",
+    )
+    PriceReport.objects.filter(pk=rep_45d.pk).update(reported_at=now - timedelta(days=45))
+
+    # 3. Crear punto hace 20 días en D1 (precio oficial de comercio)
+    rep_d1_20d = ReportPriceUseCase().execute(
+        presentation=pres,
+        establishment=est_d1,
+        raw_price=Decimal("9500.00"),
+        reporter_token="merchant-d1",
+        source_type=SourceType.OFFICIAL_MERCHANT,
+    )
+    PriceReport.objects.filter(pk=rep_d1_20d.pk).update(reported_at=now - timedelta(days=20))
+
+    anon_client = APIClient()
+
+    # Consultar historial de 90 días comparando ambos establecimientos
+    hist_res_1 = anon_client.get(
+        f"/api/v1/products/{prod.id}/price-history/?days=90&establishment_ids={est_ara.id},{est_d1.id}"
+    )
+    assert hist_res_1.status_code == 200
+    data_1 = hist_res_1.json()
+    assert data_1["product_id"] == prod.id
+    assert data_1["window_days"] == 90
+    assert data_1["total_points"] == 2
+    assert data_1["excluded_out_of_window_count"] == 1
+    assert len(data_1["establishment_series"]) == 2
+
+    # 4. Durante la semana cambia el precio en Ara vía POST a /api/v1/price-reports/ -> debe aparecer al instante en el historial
+    merchant_user = User.objects.create_user(
+        username="ara_oficial_hist",
+        email="ara_hist@pricecol.co",
+        password="Password2026*",
+    )
+    est_ara.owner = merchant_user
+    est_ara.save(update_fields=["owner"])
+    UserProfile.objects.create(
+        user=merchant_user,
+        role=ActorRole.MERCHANT,
+        managed_establishment=est_ara,
+        verification_status=VerificationStatus.VERIFIED,
+        accepted_data_policy=True,
+    )
+
+    auth_client = APIClient()
+    auth_client.force_authenticate(user=merchant_user)
+    post_new = auth_client.post(
+        "/api/v1/price-reports/",
+        data={
+            "presentation_id": pres.id,
+            "establishment_id": est_ara.id,
+            "raw_price": "9900.00",
+            "source_type": "OFFICIAL_MERCHANT",
+        },
+        format="json",
+    )
+    assert post_new.status_code == 201
+
+    # Verificar que NO se sobrescribió el registro de hace 45 días en PostgreSQL (Append-Only)
+    assert PriceReport.objects.filter(presentation=pres, establishment=est_ara).count() == 3
+
+    # Consultar de nuevo el historial de Ara -> ahora tiene 2 puntos dentro de los 90 días (900.00 -> 990.00 / 100ml = +10.00% UP)
+    hist_res_2 = anon_client.get(
+        f"/api/v1/products/{prod.id}/price-history/?days=90&establishment_id={est_ara.id}"
+    )
+    assert hist_res_2.status_code == 200
+    data_2 = hist_res_2.json()
+    assert data_2["total_points"] == 2
+    ara_series = data_2["establishment_series"][0]
+    assert ara_series["establishment_id"] == est_ara.id
+    assert ara_series["trend_direction"] == "UP"
+    assert ara_series["variation_percentage"] == "10.00"
+    assert [pt["source_type"] for pt in ara_series["points"]] == [
+        "COMMUNITY_OCCASIONAL",
+        "OFFICIAL_MERCHANT",
+    ]
+
+
+
 

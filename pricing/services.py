@@ -32,6 +32,10 @@ from core_domain.neutral_comparator import (
     SortCriterion,
 )
 from core_domain.ports import PriceSourcePort
+from core_domain.price_history import (
+    PriceHistoryService,
+    ProductPriceHistoryOutput,
+)
 from core_domain.unit_normalizer import UnitNormalizer
 from core_domain.validity_policy import ValidityPolicy
 from pricing.models import PriceReport
@@ -289,6 +293,60 @@ class ComparePricesQueryService:
             entries=all_entries,
             criterion=criterion,
             include_low_confidence_with_warning=include_low_confidence,
+        )
+
+        cache.set(cache_key, output, timeout=self.CACHE_TTL_SECONDS)
+        return output
+
+
+class PriceHistoryQueryService:
+    """
+    Servicio de consulta de historial y tendencia de precios de los últimos 90 días (Opción A2 / EC-08 / ADR-13).
+    Reutiliza los adaptadores `PriceSourcePort`, vincula su caché a la versión del producto (`EC-02`)
+    y soporta comparar uno o varios establecimientos en la misma serie sin exponer al reportante (`M-06 = 1.00`).
+    """
+
+    CACHE_TTL_SECONDS = 120
+
+    def __init__(self, sources: list[PriceSourcePort] | None = None) -> None:
+        self.sources: list[PriceSourcePort] = sources or [CommunityPriceSourceAdapter()]
+
+    def get_product_history(
+        self,
+        *,
+        product_id: int,
+        window_days: int = 90,
+        establishment_ids: set[int] | None = None,
+        include_low_confidence: bool = True,
+    ) -> ProductPriceHistoryOutput:
+        ver_key = get_product_comparison_cache_version_key(product_id)
+        cache_ver = cache.get(ver_key, 1)
+        est_sig = (
+            "-".join(str(eid) for eid in sorted(establishment_ids))
+            if establishment_ids
+            else "all"
+        )
+        sources_sig = "-".join(sorted(type(s).__name__ for s in self.sources))
+        cache_key = (
+            f"pricecol:hist:p{product_id}:v{cache_ver}:d{window_days}:"
+            f"est_{est_sig}:lc_{int(include_low_confidence)}:{sources_sig}"
+        )
+
+        cached_output: ProductPriceHistoryOutput | None = cache.get(cache_key)
+        if cached_output is not None:
+            return cached_output
+
+        all_entries: list[ComparablePriceEntry] = []
+        for source in self.sources:
+            all_entries.extend(source.fetch_entries_for_product(product_id))
+
+        output = PriceHistoryService.build_history(
+            product_id=product_id,
+            entries=all_entries,
+            evaluated_at=timezone.now(),
+            window_days=window_days,
+            establishment_ids=establishment_ids,
+            include_low_confidence=include_low_confidence,
         )
 
         cache.set(cache_key, output, timeout=self.CACHE_TTL_SECONDS)

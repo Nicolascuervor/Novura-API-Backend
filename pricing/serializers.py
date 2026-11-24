@@ -148,3 +148,57 @@ class ProductComparisonResponseSerializer(serializers.Serializer):
     excluded_non_valid_or_anomalous_count = serializers.IntegerField()
     ranked_results = ComparablePriceItemSerializer(many=True)
     promotional_highlights_separated = ComparablePriceItemSerializer(many=True)
+
+
+class PriceHistoryPointSerializer(serializers.Serializer):
+    """Punto individual de la serie temporal de 90 días (A2 / EC-08 / M-06 = 1.00)."""
+
+    report_id = serializers.IntegerField()
+    establishment_id = serializers.IntegerField()
+    establishment_name = serializers.CharField()
+    presentation_id = serializers.IntegerField()
+    presentation_name = serializers.CharField()
+    reported_at = serializers.DateTimeField()
+    raw_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    normalized_ref_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    reference_unit_label = serializers.CharField()
+    source_type = serializers.CharField()
+    reliability_status = serializers.CharField()
+    validity_status = serializers.CharField()
+    confidence_score = serializers.DecimalField(max_digits=4, decimal_places=2)
+    is_promotional = serializers.BooleanField()
+    promotion_description = serializers.CharField(allow_null=True)
+    requires_warning = serializers.BooleanField()
+
+
+class EstablishmentPriceTrendSeriesSerializer(serializers.Serializer):
+    """Serie histórica y resumen estadístico de tendencia de un establecimiento (A2 / EC-08)."""
+
+    establishment_id = serializers.IntegerField()
+    establishment_name = serializers.CharField()
+    reference_unit_label = serializers.CharField()
+    points_count = serializers.IntegerField()
+    first_normalized_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    latest_normalized_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    min_normalized_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    max_normalized_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    avg_normalized_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    variation_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    variation_percentage = serializers.DecimalField(max_digits=8, decimal_places=2)
+    trend_direction = serializers.CharField()
+    points = PriceHistoryPointSerializer(many=True)
+
+
+class ProductPriceHistoryResponseSerializer(serializers.Serializer):
+    """Respuesta completa del historial y tendencia de precios de hasta 90 días (Opción A2 / EC-08)."""
+
+    product_id = serializers.IntegerField()
+    product_name = serializers.CharField()
+    window_days = serializers.IntegerField()
+    cutoff_start_at = serializers.DateTimeField()
+    evaluated_at = serializers.DateTimeField()
+    privacy_statement = serializers.CharField()
+    total_points = serializers.IntegerField()
+    excluded_out_of_window_count = serializers.IntegerField()
+    excluded_anomalous_count = serializers.IntegerField()
+    establishment_series = EstablishmentPriceTrendSeriesSerializer(many=True)
