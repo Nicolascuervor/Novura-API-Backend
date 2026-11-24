@@ -70,25 +70,25 @@ jobs:
         run: |
           docker build -t nuvora-backend:${{ github.sha }} -t nuvora-backend:staging-candidate .
 
-      - name: Run Aqua Security Trivy vulnerability scanner on container image (OS + Libraries Report)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: "nuvora-backend:${{ github.sha }}"
-          format: "table"
-          exit-code: "0"
-          ignore-unfixed: true
-          vuln-type: "os,library"
-          severity: "HIGH,CRITICAL"
+      - name: Run Aqua Security Trivy vulnerability scanner on container image (aquasecurity/trivy-action / aquasec/trivy)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+            --pkg-types os,library \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 0 \
+            "nuvora-backend:${{ github.sha }}"
 
       - name: Enforce Trivy Quality Gate (Block on CRITICAL application library vulnerabilities)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: "nuvora-backend:${{ github.sha }}"
-          format: "table"
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "library"
-          severity: "CRITICAL"
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image \
+            --pkg-types library \
+            --scanners vuln \
+            --severity CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            "nuvora-backend:${{ github.sha }}"
 
   # ============================================================================
   # ETAPA 3: DESPLIEGUE AUTOMÁTICO EN STAGING (DESDE CERO) + PRUEBA DE HUMO (k6)
