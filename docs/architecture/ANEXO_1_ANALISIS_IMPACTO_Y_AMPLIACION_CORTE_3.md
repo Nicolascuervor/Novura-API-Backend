@@ -104,19 +104,35 @@ Formato completo de Bass, Clements y Kazman (2021):
 
 ---
 
-## 4. Plantilla 8.3 — Registro de Análisis de Impacto y Estimación de Esfuerzo (Previo a la Construcción)
+## 4. Plantilla 8.3 — Registro de Análisis de Impacto y Contraste de Esfuerzo (Estimado vs. Real al Cierre)
 
-*Nota metodológica: De conformidad con la sección 8.3 del Anexo 1, las columnas de **Tipo de cambio** y **Esfuerzo estimado (h)** se diligencian y registran en este commit previo al desarrollo; la columna de **Esfuerzo real (h)** se consolida al cierre de la implementación para el contraste del Entregable 6.*
+*Nota metodológica: De conformidad con la sección 8.3 del Anexo 1, las columnas de **Tipo de cambio** y **Esfuerzo estimado (h)** se registraron en el commit previo a la implementación (`1b1cb51`), y la columna de **Esfuerzo real (h)** se consolida al cierre tras completar y verificar la ejecución en GitHub Actions (`4877978`) para el contraste del Entregable 6.*
 
-| Componente | Tipo de cambio (`nuevo`, `modificado`, `sin cambio`) | Esfuerzo estimado (h) | Esfuerzo real (h) | Observaciones de Análisis de Impacto |
+| Componente | Tipo de cambio (`nuevo`, `modificado`, `sin cambio`) | Esfuerzo estimado (h) | Esfuerzo real (h) | Observaciones de Análisis de Impacto y Contraste |
 | :--- | :---: | :---: | :---: | :--- |
-| **`core_domain/entities.py`, `unit_normalizer.py`, `validity_policy.py`, `anomaly_detector.py`, `neutral_comparator.py`** | **sin cambio** | 0.0 h | *Pendiente al cierre* | **Reutilización del 100 % del núcleo existente (`M-09 = 0.00`).** No se altera ninguna regla previa. |
-| **`pricing/models.py` (`PriceReport`)** | **sin cambio** | 0.0 h | *Pendiente al cierre* | El modelo `PriceReport` ya fue diseñado como *append-only* con `source_type`, `reliability_status`, `reported_at` e índices compuestos B-Tree. Cero migraciones destructivas. |
-| **`core_domain/price_history.py` (Opción A2 — TDD)** | **nuevo** | 3.0 h | *Pendiente al cierre* | Nuevo módulo puro de dominio desarrollado con TDD: ventana de 90 días, exclusión de `ANOMALOUS`, distinción de fuentes/confiabilidad, comparación entre 2 establecimientos y cálculo de tendencia (`%` variación, min, max, promedio). |
-| **`tests/unit/test_price_history_tdd.py` (Opción A2 — TDD)** | **nuevo** | 2.5 h | *Pendiente al cierre* | Suite TDD unitaria para las reglas que determinan qué precios entran en la serie de 90 días y comparación multi-establecimiento. |
-| **`pricing/services.py`, `pricing/serializers.py`, `pricing/views.py` y `pricecol_api_backend/urls.py` (Opción A2)** | **modificado** | 3.5 h | *Pendiente al cierre* | Se agrega `PriceHistoryQueryService` (con caché en Redis vinculada a la versión del producto) y el endpoint `GET /api/v1/products/{product_id}/price-history/` sin modificar los endpoints existentes. |
-| **`tests/integration/test_api_flows.py` y `tests/security/test_privacy_m06.py` (Opción A2)** | **modificado** | 2.0 h | *Pendiente al cierre* | Pruebas end-to-end del escenario `EC-08` y verificación de que el historial cumple `M-06 = 1.00` (Ley 1581: cero exposición del reportante). |
-| **`.github/workflows/ci-cd-quality-gate.yml` (Opción B2)** | **nuevo** | 3.5 h | *Pendiente al cierre* | Pipeline CI/CD como código: Quality Gate (`pytest --cov`, `ruff check`, `manage.py check`), escaneo de contenedor con `Trivy`, despliegue automático a Staging + Smoke Test con `k6` y job de promoción manual a Producción. |
-| **`tests/load/k6_smoke_staging.js` (Opción B2)** | **nuevo** | 1.5 h | *Pendiente al cierre* | Prueba de humo en `k6` ejecutada automáticamente tras desplegar en Staging (valida `/api/v1/health/`, comparación e historial de 90 días con `p(95) < 1500ms` y `0%` errores). |
-| **`deploy/scripts/rollback_release.sh` y `deploy/scripts/verify_quality_gate.py` (Opción B2)** | **nuevo** | 2.0 h | *Pendiente al cierre* | Script automatizado de reversión a versión estable previa en $< 90\text{ s}$ con procedimiento documentado y script verificador del Quality Gate para `EC-12`. |
-| **Total Ampliación Corte 3 (`A2` + `B2`)** | **5 nuevos / 2 modificados / 2 sin cambio** | **18.0 h** | *Pendiente al cierre* | **El 100 % del núcleo del Corte 2 permanece intacto (`sin cambio`), demostrando alta capacidad de evolución (`EC-05`).** |
+| **`core_domain/entities.py`, `unit_normalizer.py`, `validity_policy.py`, `anomaly_detector.py`, `neutral_comparator.py`** | **sin cambio** | 0.0 h | **0.0 h** | **Reutilización del 100 % del núcleo existente (`M-09 = 0.00`).** No se alteró ninguna regla previa del Corte 2. |
+| **`pricing/models.py` (`PriceReport`)** | **sin cambio** | 0.0 h | **0.0 h** | El modelo `PriceReport` ya operaba como *append-only* con `source_type`, `reliability_status`, `reported_at` e índices compuestos B-Tree. Cero migraciones requeridas. |
+| **`core_domain/price_history.py` (Opción A2 — TDD)** | **nuevo** | 3.0 h | **2.5 h** | Desarrollado con TDD: ventana de 90 días, exclusión de `ANOMALOUS`, distinción de fuentes/confiabilidad, comparación entre 2+ establecimientos y cálculo de tendencia (`%` variación, min, max, promedio). Menor esfuerzo gracias a la reutilización de `ComparablePriceEntry`. |
+| **`tests/unit/test_price_history_tdd.py` (Opción A2 — TDD)** | **nuevo** | 2.5 h | **2.0 h** | Suite TDD unitaria con `99 %` de cobertura sobre `core_domain/price_history.py`. |
+| **`pricing/services.py`, `pricing/serializers.py`, `pricing/views.py` y `pricecol_api_backend/urls.py` (Opción A2)** | **modificado** | 3.5 h | **3.0 h** | Se agregó `PriceHistoryQueryService` (con caché en Redis vinculada a la versión del producto + soporte `ETag 304`) y el endpoint `GET /api/v1/products/{product_id}/price-history/` reutilizando `CommunityPriceSourceAdapter`. |
+| **`tests/integration/test_api_flows.py` y `tests/security/test_privacy_m06.py` (Opción A2)** | **modificado** | 2.0 h | **2.0 h** | Pruebas end-to-end del escenario `EC-08` y verificación de que el historial cumple `M-06 = 1.00` (Ley 1581: cero exposición del reportante). |
+| **`.github/workflows/ci-cd-quality-gate.yml` (Opción B2)** | **nuevo** | 3.5 h | **4.0 h** | Pipeline CI/CD en GitHub Actions: requirió +0.5 h adicionales para ajustar la ejecución directa de la imagen oficial `aquasec/trivy:latest` y la dependencia `packaging>=24.0` de Kombu/Redis en Ubuntu Linux. |
+| **`tests/load/k6_smoke_staging.js` (Opción B2)** | **nuevo** | 1.5 h | **1.5 h** | Prueba de humo en `k6` ejecutada automáticamente tras levantar Staging desde cero (valida `/api/v1/health/`, comparación e historial de 90 días con `p(95) < 1500ms` y `0%` errores). |
+| **`deploy/scripts/rollback_release.sh` y `deploy/scripts/quality_gate_runner.py` + `tests/unit/test_b2_quality_gate_pipeline.py` (Opción B2)** | **nuevo** | 2.0 h | **2.0 h** | Script automatizado de reversión en $< 90\text{ s}$ y ejecutor del Quality Gate con pruebas unitarias de bloqueo (`EC-12`). |
+| **Total Ampliación Corte 3 (`A2` + `B2`)** | **5 nuevos / 2 modificados / 2 sin cambio** | **18.0 h** | **17.0 h** | **Variación de esfuerzo: $-1.0\text{ h}$ ($-5.6\%$). La arquitectura desacoplada (`ADR-01`, `ADR-02`) permitió ahorrar 1.5 h en `A2` al reutilizar `PriceReport` y `PriceSourcePort` sin cambios estructurales (`M-09 = 0.00`).** |
+
+---
+
+## 5. Evidencia Empírica de Ejecución y Verificación (`EC-08` y `EC-12`)
+
+1. **Trazabilidad en el Historial de Git (Criterio de Anticipación — Sección 9):**
+   - **Commit `1b1cb51` (Previo al código):** Registro del análisis de impacto, estimación de 18.0 h, `ADR-13`, `ADR-14` y escenarios refinados `EC-08` y `EC-12`.
+   - **Commit `392ecf7` (Implementación A2):** Dominio TDD `core_domain/price_history.py`, endpoint `/api/v1/products/{id}/price-history/` y pruebas `EC-08` + `M-06`.
+   - **Commit `b7e05b5` (Implementación B2):** Pipeline `.github/workflows/ci-cd-quality-gate.yml`, `quality_gate_runner.py`, `k6_smoke_staging.js` y `rollback_release.sh`.
+2. **Evidencia Real del Bloqueo y Promoción del Pipeline en GitHub Actions (`EC-12`):**
+   - **Ejecución #1 (Bloqueo automático verificado):** El *Quality Gate* detectó en Ubuntu Linux el hallazgo de análisis estático `EXE001` sobre `manage.py:1:1` y **bloqueó al 100 %** las etapas de construcción Docker/Trivy, Staging y Producción (`DICTAMEN: BLOQUEADO -> El pipeline impidió la promoción del cambio defectuoso`).
+   - **Ejecución #4 (Commit `4877978` — Promoción exitosa a Staging con Trivy y k6):** Tras remediar el hallazgo, las 3 etapas automáticas aprobaron al 100 % en verde:
+     - **Etapa 1 (`1. Quality Gate`):** `55 passed`, cobertura de `core_domain` en **`99.22 %`** ($\ge 95\%$), `0` secretos expuestos y `0` errores en Ruff/Bandit.
+     - **Etapa 2 (`2. Docker Build & Trivy Container Vulnerability Scan`):** Imagen construida y validada por **Aqua Security Trivy** sin vulnerabilidades `CRITICAL` en librerías de aplicación.
+     - **Etapa 3 (`3. Automated Staging Deployment & k6 Smoke Test`):** Aprovisionamiento automático de PostgreSQL 16 + Redis 7 desde cero, migraciones, carga de datos semilla (`seed_quindio`) y ejecución exitosa de **Grafana k6** (`k6_smoke_staging.js`) sobre `/api/v1/health/`, `/api/v1/products/{id}/compare/` y `/api/v1/products/{id}/price-history/?days=90`.
+     - **Etapa 4 (`4. Manual Promotion to Production`):** Retenida correctamente en espera de confirmación manual (`workflow_dispatch`), cumpliendo el requisito de promoción manual a producción.
