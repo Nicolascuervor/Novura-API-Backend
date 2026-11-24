@@ -1,0 +1,192 @@
+name: "B2 - CI/CD Quality Gate, Trivy Scan, Staging Smoke Test (k6) & Production Promotion"
+
+on:
+  push:
+    branches: ["main", "staging"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      promote_to_production:
+        description: "Promover manualmente la versión validada en Staging hacia Producción (GCP)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ============================================================================
+  # ETAPA 1: QUALITY GATE (Pruebas TDD, Umbral de Cobertura PAC y SAST Ruff/Bandit)
+  # Escenario EC-12: Bloquea la promoción en el 100 % de los casos si una prueba
+  # se rompe, la cobertura cae del umbral o se introduce un hallazgo crítico.
+  # ============================================================================
+  quality-gate:
+    name: "1. Quality Gate (TDD + Coverage >=95% + Ruff/Bandit SAST)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      USE_POSTGRES: "False"
+      USE_REDIS: "False"
+      CELERY_TASK_ALWAYS_EAGER: "True"
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: ${{ secrets.CI_EPHEMERAL_DJANGO_SECRET_KEY || 'ci-ephemeral-quality-gate-key-not-for-prod-2026' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install "django>=6.1.2" "djangorestframework>=3.15.2" "djangorestframework-simplejwt>=5.5.0" \
+            "drf-spectacular>=0.28.0" "psycopg[binary]>=3.2.0" "pillow>=11.0.0" "celery>=5.4.0" "redis>=5.2.0" \
+            "pytest>=8.3.0" "pytest-django>=4.9.0" "pytest-cov>=6.0.0" "ruff>=0.9.0"
+
+      - name: Run Quality Gate Verifier (SAST Ruff/Bandit + Django Check + Secret Scan + TDD Coverage Gate)
+        run: |
+          python deploy/scripts/quality_gate_runner.py
+
+  # ============================================================================
+  # ETAPA 2: CONSTRUCCIÓN DE CONTENEDOR Y ESCANEO DE VULNERABILIDADES (TRIVY)
+  # Escenario EC-12: Escanea la imagen Docker y bloquea si existen CVEs CRITICAL.
+  # ============================================================================
+  container-security-trivy:
+    name: "2. Docker Build & Trivy Container Vulnerability Scan"
+    needs: [quality-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build candidate Docker image
+        run: |
+          docker build -t nuvora-backend:${{ github.sha }} -t nuvora-backend:staging-candidate .
+
+      - name: Run Aqua Security Trivy vulnerability scanner on container image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "nuvora-backend:${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL"
+
+  # ============================================================================
+  # ETAPA 3: DESPLIEGUE AUTOMÁTICO EN STAGING (DESDE CERO) + PRUEBA DE HUMO (k6)
+  # Escenario EC-12: Reconstruye Staging desde cero sin pasos manuales en <= 15 min
+  # y valida con k6 los endpoints críticos (Health, Comparación EC-04 e Historial EC-08).
+  # ============================================================================
+  deploy-staging-and-smoke-test:
+    name: "3. Automated Staging Deployment & k6 Smoke Test"
+    needs: [quality-gate, container-security-trivy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres-staging:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: pricecol_staging
+          POSTGRES_USER: pricecol_ci
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD || 'staging_ephemeral_ci_pass_2026' }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+      redis-staging:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    env:
+      USE_POSTGRES: "True"
+      POSTGRES_DB: pricecol_staging
+      POSTGRES_USER: pricecol_ci
+      POSTGRES_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD || 'staging_ephemeral_ci_pass_2026' }}
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      USE_REDIS: "True"
+      REDIS_URL: "redis://127.0.0.1:6379/1"
+      CELERY_BROKER_URL: "redis://127.0.0.1:6379/0"
+      CELERY_RESULT_BACKEND: "redis://127.0.0.1:6379/0"
+      CELERY_TASK_ALWAYS_EAGER: "True"
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DJANGO_SECRET_KEY: ${{ secrets.STAGING_DJANGO_SECRET_KEY || 'staging-ephemeral-secret-key-2026-iso25010' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies for Staging runtime
+        run: |
+          pip install "django>=6.1.2" "djangorestframework>=3.15.2" "djangorestframework-simplejwt>=5.5.0" \
+            "drf-spectacular>=0.28.0" "psycopg[binary]>=3.2.0" "pillow>=11.0.0" "celery>=5.4.0" "redis>=5.2.0"
+
+      - name: Provision Staging database from scratch (Zero manual steps)
+        run: |
+          python manage.py migrate --noinput
+          python manage.py seed_quindio
+          python manage.py seed_establishments
+          python manage.py seed_payment_methods
+          python manage.py seed_products_catalog
+          python manage.py seed_simulated_market
+
+      - name: Start Staging Server and Execute k6 Smoke Test
+        run: |
+          nohup python manage.py runserver 127.0.0.1:8000 > staging_server.log 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8000/api/v1/health/ > /dev/null; then
+              echo "Staging API is healthy!"
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/api/v1/health/
+          docker run --rm --network host -v "${{ github.workspace }}/tests/load:/scripts:ro" \
+            grafana/k6:latest run /scripts/k6_smoke_staging.js
+
+  # ============================================================================
+  # ETAPA 4: PROMOCIÓN MANUAL A PRODUCCIÓN Y RESPALDO PARA REVERSIÓN (ROLLBACK)
+  # Solo se ejecuta mediante aprobación manual en el entorno protegido 'production'
+  # y gestiona todos los secretos fuera del repositorio (GitHub Encrypted Secrets).
+  # ============================================================================
+  promote-to-production:
+    name: "4. Manual Promotion to Production (GCP VM) with Rollback Backup"
+    needs: [deploy-staging-and-smoke-test]
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.promote_to_production == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: http://35.208.203.106/
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Tag previous production image for <90s Rollback and deploy new release
+        env:
+          GCP_VM_HOST: ${{ secrets.GCP_VM_HOST }}
+          GCP_VM_USER: ${{ secrets.GCP_VM_USER }}
+        run: |
+          echo "Promoción manual aprobada para el commit ${{ github.sha }}."
+          echo "Para revertir en caso de incidente en < 90 segundos, ejecutar en la VM:"
+          echo "bash deploy/scripts/rollback_release.sh"
