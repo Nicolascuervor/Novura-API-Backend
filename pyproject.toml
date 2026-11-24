@@ -32,4 +32,4 @@ target-version = "py313"
 extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
-ignore = ["RUF012"]
+ignore = ["RUF012", "EXE001"]

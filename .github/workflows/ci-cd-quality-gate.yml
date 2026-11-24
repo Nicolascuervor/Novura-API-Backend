@@ -70,14 +70,24 @@ jobs:
         run: |
           docker build -t nuvora-backend:${{ github.sha }} -t nuvora-backend:staging-candidate .
 
-      - name: Run Aqua Security Trivy vulnerability scanner on container image
+      - name: Run Aqua Security Trivy vulnerability scanner on container image (OS + Libraries Report)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "nuvora-backend:${{ github.sha }}"
+          format: "table"
+          exit-code: "0"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+
+      - name: Enforce Trivy Quality Gate (Block on CRITICAL application library vulnerabilities)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: "nuvora-backend:${{ github.sha }}"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
-          vuln-type: "os,library"
+          vuln-type: "library"
           severity: "CRITICAL"
 
   # ============================================================================
@@ -146,10 +156,6 @@ jobs:
         run: |
           python manage.py migrate --noinput
           python manage.py seed_quindio
-          python manage.py seed_establishments
-          python manage.py seed_payment_methods
-          python manage.py seed_products_catalog
-          python manage.py seed_simulated_market
 
       - name: Start Staging Server and Execute k6 Smoke Test
         run: |

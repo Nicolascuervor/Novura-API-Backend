@@ -24,7 +24,6 @@ export const options = {
 };
 
 const BASE_URL = __ENV.BASE_URL || "http://127.0.0.1:8000";
-const PRODUCT_ID = __ENV.PRODUCT_ID || "1";
 
 export default function () {
   // 1. Verificar Healthcheck del backend
@@ -34,9 +33,23 @@ export default function () {
     "Servicio reporta status ok": (r) => r.body && r.body.includes('"status": "ok"'),
   });
 
+  // Obtener dinámicamente el primer producto activo del catálogo en Staging
+  const productsRes = http.get(`${BASE_URL}/api/v1/products/`);
+  let productId = __ENV.PRODUCT_ID || "1";
+  if (productsRes.status === 200) {
+    try {
+      const parsed = JSON.parse(productsRes.body);
+      if (parsed.results && parsed.results.length > 0) {
+        productId = String(parsed.results[0].id);
+      }
+    } catch (_) {
+      productId = "1";
+    }
+  }
+
   // 2. Verificar Comparador Neutral (EC-04 / EC-06)
   const cmpRes = http.get(
-    `${BASE_URL}/api/v1/products/${PRODUCT_ID}/compare/?sort_by=UNIT_PRICE_ASC`
+    `${BASE_URL}/api/v1/products/${productId}/compare/?sort_by=UNIT_PRICE_ASC`
   );
   check(cmpRes, {
     "Comparador responde HTTP 200": (r) => r.status === 200,
@@ -48,7 +61,7 @@ export default function () {
 
   // 3. Verificar Historial y Tendencia de 90 Días (Ampliación A2 / EC-08)
   const histRes = http.get(
-    `${BASE_URL}/api/v1/products/${PRODUCT_ID}/price-history/?days=90`
+    `${BASE_URL}/api/v1/products/${productId}/price-history/?days=90`
   );
   check(histRes, {
     "Historial de 90 días responde HTTP 200": (r) => r.status === 200,
