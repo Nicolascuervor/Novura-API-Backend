@@ -150,7 +150,7 @@ jobs:
       - name: Install dependencies for Staging runtime
         run: |
           pip install "django>=6.1.2" "djangorestframework>=3.15.2" "djangorestframework-simplejwt>=5.5.0" \
-            "drf-spectacular>=0.28.0" "psycopg[binary]>=3.2.0" "pillow>=11.0.0" "celery>=5.4.0" "redis>=5.2.0"
+            "drf-spectacular>=0.28.0" "psycopg[binary]>=3.2.0" "pillow>=11.0.0" "celery>=5.4.0" "redis>=5.2.0" "packaging>=24.0"
 
       - name: Provision Staging database from scratch (Zero manual steps)
         run: |
