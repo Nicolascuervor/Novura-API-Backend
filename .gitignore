@@ -27,6 +27,9 @@ db.sqlite3
 db.sqlite3-journal
 *.log
 media/
+local_full_backup.json
+media_backup.tar.gz
+restore_prod_data.sh
 
 # ==============================================================================
 # 4. IDEs y Configuraciones de Editor Locales
