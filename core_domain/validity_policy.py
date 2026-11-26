@@ -9,12 +9,17 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from core_domain.entities import ProductCategory, ValidityAssessment, ValidityStatus
 
-# Ventanas máximas de vigencia en horas según la rotación de la categoría en Armenia/Quindío
+# Ventanas de vigencia en horas según los regímenes de volatilidad de ADR-04 (EC-02):
+# - Alta volatilidad (verduras, frutas, huevos, carnes y perecederos): vigente hasta 2 días (48h), con advertencia hasta día 5 (120h), excluido después.
+# - Baja volatilidad (granos, abarrotes, enlatados, bebidas, aseo personal y limpieza): vigente hasta 7 días (168h), con advertencia hasta día 15 (360h), excluido después.
 _CATEGORY_TTL_HOURS: dict[ProductCategory, tuple[Decimal, Decimal]] = {
     # (umbral_advertencia_horas, umbral_expiracion_maxima_horas)
-    ProductCategory.PERISHABLE: (Decimal(120), Decimal(168)),      # Advertencia a los 5 días, expira a los 7 días
-    ProductCategory.GROCERY: (Decimal(240), Decimal(360)),         # Advertencia a los 10 días, expira a los 15 días
-    ProductCategory.PERSONAL_CARE: (Decimal(360), Decimal(504)),   # Advertencia a los 15 días, expira a los 21 días
+    ProductCategory.FRUITS_VEGGIES: (Decimal(48), Decimal(120)),      # Alta volatilidad: advertencia a las 48h (2 días), expira a las 120h (5 días)
+    ProductCategory.PERISHABLE: (Decimal(48), Decimal(120)),         # Alta volatilidad: advertencia a las 48h (2 días), expira a las 120h (5 días)
+    ProductCategory.GROCERY: (Decimal(168), Decimal(360)),            # Baja volatilidad: advertencia a las 168h (7 días), expira a las 360h (15 días)
+    ProductCategory.BEVERAGES: (Decimal(168), Decimal(360)),          # Baja volatilidad: advertencia a las 168h (7 días), expira a las 360h (15 días)
+    ProductCategory.PERSONAL_CARE: (Decimal(168), Decimal(360)),      # Baja volatilidad: advertencia a las 168h (7 días), expira a las 360h (15 días)
+    ProductCategory.CLEANING: (Decimal(168), Decimal(360)),           # Baja volatilidad: advertencia a las 168h (7 días), expira a las 360h (15 días)
 }
 
 
@@ -28,11 +33,14 @@ class ValidityPolicy:
         category: ProductCategory | str = ProductCategory.GROCERY,
         latest_verified_at_for_establishment: datetime | None = None,
     ) -> ValidityAssessment:
-        cat_enum = (
-            ProductCategory(category)
-            if not isinstance(category, ProductCategory)
-            else category
-        )
+        try:
+            cat_enum = (
+                ProductCategory(category)
+                if not isinstance(category, ProductCategory)
+                else category
+            )
+        except ValueError:
+            cat_enum = ProductCategory.GROCERY
 
         # EC-02: Si existe una modificación oficial o un reporte verificado más reciente
         # en el mismo establecimiento para la misma presentación, el precio anterior queda SUPERSEDED de inmediato.

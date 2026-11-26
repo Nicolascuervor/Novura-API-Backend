@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+from catalog.models import Category, Establishment, PaymentMethod, Product, ProductPresentation
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "volatility", "color", "display_order", "is_active")
+    list_filter = ("volatility", "is_active")
+    search_fields = ("name", "code", "description")
+    ordering = ("display_order", "name")
 
 
 @admin.register(PaymentMethod)

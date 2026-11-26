@@ -6,6 +6,7 @@ Cumple estrictamente con `django-architecture-enforcer` y `django-security-audit
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, views, viewsets
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,6 +39,13 @@ from pricing.services import (
 )
 
 
+class PriceReportPagination(PageNumberPagination):
+    """Paginación optimizada para catálogo y reportes comunitarios."""
+    page_size = 200
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
 class PriceReportViewSet(viewsets.ModelViewSet):
     """
     Endpoint de registro ágil de precios en góndola (EC-01 <= 15s) y consulta de reportes públicos
@@ -48,8 +56,15 @@ class PriceReportViewSet(viewsets.ModelViewSet):
 
     permission_classes = [CanReportPricesPermission]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
+    pagination_class = PriceReportPagination
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "price_report"
+
+    def get_throttles(self):
+        # El rate limiting solo aplica para creación/registro (POST), nunca para consultas públicas de lectura (GET)
+        if self.action == "create":
+            return [ScopedRateThrottle()]
+        return []
     queryset = (
         PriceReport.objects.select_related(
             "presentation",

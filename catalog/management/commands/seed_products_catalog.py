@@ -20,87 +20,87 @@ class Command(BaseCommand):
 
         products_data = [
             # ==========================================
-            # 1. FRUTAS, VERDURAS Y TUBÉRCULOS (PERISHABLE)
+            # 1. FRUTAS, VERDURAS Y TUBÉRCULOS (FRUITS_VEGGIES)
             # ==========================================
             # Base para guisos (hogao)
             {
                 "name": "Tomate Chonto",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "tomate, tomate de guiso, tomate chonto, tomate aliño",
                 "description": "Tomate chonto fresco para guiso, ensaladas y consumo diario en los hogares.",
             },
             {
                 "name": "Cebolla Larga / Junca",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "cebolla larga, cebolla junca, cebolla de rama, cebolla verde",
                 "description": "Cebolla junca o larga fresca, base fundamental para el tradicional hogao.",
             },
             {
                 "name": "Cebolla Cabezona",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "cebolla cabezona, cebolla blanca, cebolla roja",
                 "description": "Cebolla cabezona fresca para cocina diaria y aderezos.",
             },
             {
                 "name": "Ajo",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "ajo, cabeza de ajo, dientes de ajo",
                 "description": "Ajo fresco en cabeza o malla para sazón y preparaciones culinarias.",
             },
             # Tubérculos y complementos
             {
                 "name": "Papa",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "papa, papa pastusa, papa criolla, papa parda, papa nevada",
                 "description": "Papa fresca en sus variedades pastusa, criolla o común para sopas y guisos.",
             },
             {
                 "name": "Plátano",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "platano, platano verde, platano maduro, platano guineo",
                 "description": "Plátano verde o maduro de alta demanda en la región cafetera.",
             },
             {
                 "name": "Yuca",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "yuca, yuca fresca, yuca llanera, yuca chiroza",
                 "description": "Yuca fresca para cocidos, caldos y fritos tradicionales.",
             },
             # Verduras básicas
             {
                 "name": "Zanahoria",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "zanahoria, zanahoria fresca",
                 "description": "Zanahoria fresca para ensaladas, sopas y jugos.",
             },
             {
                 "name": "Cilantro",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "cilantro, atado de cilantro, cilantro de castilla",
                 "description": "Cilantro fresco aromático para caldos, sopas y aderezos.",
             },
             {
                 "name": "Repollo / Lechuga",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "repollo, lechuga, repollo blanco, repollo morado, lechuga batavia",
                 "description": "Hortalizas de hoja verde para ensaladas y guarniciones familiares.",
             },
             # Frutas de alto consumo
             {
                 "name": "Limón",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "limon, limon tahiti, limon comun, limon mandarino",
                 "description": "Limón fresco para bebidas, jugos y condimento de comidas.",
             },
             {
                 "name": "Banano",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "banano, platano banano, guineo maduro",
                 "description": "Banano dulce de alto consumo calórico y nutricional.",
             },
             {
                 "name": "Frutas para Jugos",
-                "category": ProductCategory.PERISHABLE.value,
+                "category": ProductCategory.FRUITS_VEGGIES.value,
                 "aliases": "guayaba, papaya, mora, lulo, maracuya, pulpa de fruta",
                 "description": "Frutas tradicionales de cosecha para preparación de jugos caseros.",
             },
@@ -206,34 +206,58 @@ class Command(BaseCommand):
             },
 
             # ==========================================
-            # 6. ASEO DEL HOGAR Y PERSONAL (PERSONAL_CARE)
+            # 6. BEBIDAS Y LICORES (BEVERAGES)
             # ==========================================
-            # Hogar
+            {
+                "name": "Gaseosa Cola Familiar",
+                "category": ProductCategory.BEVERAGES.value,
+                "aliases": "gaseosa, refresco, coca cola, cola familiar, postobon, gaseosa 3l",
+                "description": "Bebida gaseosa azucarada tamaño familiar para compartir en el hogar.",
+            },
+            {
+                "name": "Jugo Envasado",
+                "category": ProductCategory.BEVERAGES.value,
+                "aliases": "jugo de caja, jugo hit, del valle, jugo envasado, nectar de fruta",
+                "description": "Jugo o néctar pasteurizado en empaque tetrapak o botella pet.",
+            },
+            {
+                "name": "Agua Envasada",
+                "category": ProductCategory.BEVERAGES.value,
+                "aliases": "agua en botella, agua pura, agua mineral, brisa, cristal, botellon",
+                "description": "Agua purificada o mineral envasada sin gas para hidratación familiar.",
+            },
+
+            # ==========================================
+            # 7. LIMPIEZA DEL HOGAR (CLEANING)
+            # ==========================================
             {
                 "name": "Jabón Lavaloza",
-                "category": ProductCategory.PERSONAL_CARE.value,
+                "category": ProductCategory.CLEANING.value,
                 "aliases": "lavaloza, jabon lavaplatos, axion, crema lavaloza, lavaloza liquido",
                 "description": "Jabón lavaplatos en crema o líquido para desengrasar vajillas.",
             },
             {
                 "name": "Detergente para Ropa",
-                "category": ProductCategory.PERSONAL_CARE.value,
+                "category": ProductCategory.CLEANING.value,
                 "aliases": "detergente, jabon en polvo, jabon liquido ropa, ariel, fab, derrite",
                 "description": "Detergente en polvo o líquido para lavado de prendas textiles.",
             },
             {
                 "name": "Limpiador de Pisos",
-                "category": ProductCategory.PERSONAL_CARE.value,
+                "category": ProductCategory.CLEANING.value,
                 "aliases": "limpiador de pisos, desinfectante, fabuloso, limpiapisos",
                 "description": "Limpiador aromatizante y desinfectante para superficies y pisos.",
             },
             {
                 "name": "Cloro / Límpido",
-                "category": ProductCategory.PERSONAL_CARE.value,
+                "category": ProductCategory.CLEANING.value,
                 "aliases": "limpido, cloro, blanqueador, hipoclorito, clorox",
                 "description": "Blanqueador y desinfectante clorado para el hogar.",
             },
-            # Personal
+
+            # ==========================================
+            # 8. CUIDADO PERSONAL (PERSONAL_CARE)
+            # ==========================================
             {
                 "name": "Papel Higiénico",
                 "category": ProductCategory.PERSONAL_CARE.value,

@@ -4,7 +4,37 @@ Serializers de la API del Catálogo.
 
 from rest_framework import serializers
 
-from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+from catalog.models import Category, Establishment, PaymentMethod, Product, ProductPresentation
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer público de categorías con metadata de presentación para el frontend."""
+
+    id = serializers.CharField(source="code", read_only=True)
+
+    class Meta:
+        model = Category
+        fields = (
+            "id",
+            "code",
+            "name",
+            "volatility",
+            "color",
+            "description",
+            "display_order",
+            "is_active",
+        )
+
+    def validate(self, attrs):
+        code = attrs.get("code") or (self.instance.code if self.instance else None)
+        volatility = attrs.get("volatility") or (self.instance.volatility if self.instance else "low")
+        name = attrs.get("name") or (self.instance.name if self.instance else "")
+        dummy = Category(code=code, volatility=volatility, name=name)
+        try:
+            dummy.clean()
+        except serializers.DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict if hasattr(exc, "message_dict") else exc.messages)
+        return attrs
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
@@ -182,6 +212,28 @@ class ProductMutationSerializer(serializers.ModelSerializer):
             "is_active",
         )
         read_only_fields = ("product_image",)
+
+    def validate_category(self, value: str) -> str:
+        from core_domain.entities import ProductCategory
+        valid_codes = [c.value for c in ProductCategory]
+        if value not in valid_codes:
+            raise serializers.ValidationError(
+                f"La categoría '{value}' no está soportada en el dominio (ProductCategory). "
+                f"Categorías permitidas: {', '.join(valid_codes)}."
+            )
+        if Category.objects.exists():
+            active_cat = Category.objects.filter(code=value, is_active=True).first()
+            if not active_cat:
+                raise serializers.ValidationError(
+                    f"La categoría '{value}' no existe o se encuentra desactivada administrativamente."
+                )
+        return value
+
+    def validate(self, attrs: dict) -> dict:
+        category = attrs.get("category") or (self.instance.category if self.instance else None)
+        if category:
+            self.validate_category(category)
+        return attrs
 
 
 class ProductPresentationMutationSerializer(serializers.ModelSerializer):

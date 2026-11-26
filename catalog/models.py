@@ -114,6 +114,66 @@ class Establishment(models.Model):
         return f"{self.name} ({self.get_establishment_type_display()} - {self.neighborhood}, {self.municipality})"
 
 
+class Category(models.Model):
+    """
+    Categoría del catálogo administrable y extensible (EC-02, EC-04).
+    Permite incorporar nuevas categorías desde el panel administrativo
+    o fixtures sin alterar el esquema relacional de productos ni requerir
+    modificaciones estáticas en el frontend.
+    """
+
+    code = models.CharField(max_length=50, unique=True, db_index=True)
+    name = models.CharField(max_length=120)
+    volatility = models.CharField(
+        max_length=10,
+        choices=[("high", "Alta volatilidad"), ("low", "Baja volatilidad")],
+        default="low",
+    )
+    color = models.CharField(max_length=30, default="sky")
+    description = models.CharField(max_length=255, blank=True, default="")
+    display_order = models.PositiveIntegerField(default=0, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "Categoría"
+        verbose_name_plural = "Categorías"
+
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        from core_domain.entities import ProductCategory
+
+        if self.code:
+            self.code = self.code.strip().upper()
+            valid_codes = [c.value for c in ProductCategory]
+            if self.code not in valid_codes:
+                raise ValidationError({
+                    "code": (
+                        f"El código '{self.code}' no está soportado en las reglas de dominio del núcleo (ProductCategory). "
+                        f"Para preservar la consistencia del patrón híbrido, las categorías deben estar respaldadas "
+                        f"por el dominio puro. Códigos soportados: {', '.join(valid_codes)}."
+                    )
+                })
+
+            high_volatility_codes = {ProductCategory.FRUITS_VEGGIES.value, ProductCategory.PERISHABLE.value}
+            expected_volatility = "high" if self.code in high_volatility_codes else "low"
+            if self.volatility != expected_volatility:
+                raise ValidationError({
+                    "volatility": (
+                        f"Inconsistencia con ADR-04: La categoría '{self.code}' debe tener volatilidad '{expected_volatility}' "
+                        f"para garantizar coherencia con las ventanas temporales de ValidityPolicy."
+                    )
+                })
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.code})"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
 class Product(models.Model):
     """
     Producto base de la canasta familiar que agrupa distintas marcas, presentaciones y denominaciones.
@@ -142,11 +202,30 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+        # Validar contra categorías activas de base de datos si existen registros
+        try:
+            if Category.objects.exists():
+                active_cat = Category.objects.filter(code=self.category, is_active=True).first()
+                if not active_cat:
+                    raise ValidationError({
+                        "category": f"La categoría '{self.category}' no existe o se encuentra desactivada administrativamente."
+                    })
+        except Exception as e:
+            if isinstance(e, ValidationError):
+                raise e
+
     class Meta:
         ordering = ["name"]
 
     def __str__(self) -> str:
         return f"{self.name} [{self.category}]"
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class ProductPresentation(models.Model):

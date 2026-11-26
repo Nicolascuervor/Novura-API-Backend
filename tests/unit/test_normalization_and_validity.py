@@ -132,8 +132,8 @@ class TestValidityPolicyTDD(unittest.TestCase):
         self.assertTrue(assessment.is_currently_valid)
         self.assertGreaterEqual(assessment.freshness_score, Decimal("0.90"))
 
-    def test_perishable_product_expires_after_7_days(self) -> None:
-        reported_at = self.now - timedelta(days=8)
+    def test_perishable_product_expires_after_5_days_per_adr04(self) -> None:
+        reported_at = self.now - timedelta(days=6)
         assessment = self.policy.evaluate(
             reported_at=reported_at,
             evaluated_at=self.now,
@@ -142,6 +142,150 @@ class TestValidityPolicyTDD(unittest.TestCase):
         self.assertEqual(assessment.status, ValidityStatus.EXPIRED)
         self.assertFalse(assessment.is_currently_valid)
         self.assertEqual(assessment.freshness_score, Decimal("0.00"))
+
+    def test_fruits_veggies_product_expires_after_5_days_per_adr04(self) -> None:
+        reported_at = self.now - timedelta(days=6)
+        assessment = self.policy.evaluate(
+            reported_at=reported_at,
+            evaluated_at=self.now,
+            category=ProductCategory.FRUITS_VEGGIES,
+        )
+        self.assertEqual(assessment.status, ValidityStatus.EXPIRED)
+        self.assertFalse(assessment.is_currently_valid)
+        self.assertEqual(assessment.freshness_score, Decimal("0.00"))
+
+    def test_cleaning_product_warns_between_day_7_and_15_per_adr04(self) -> None:
+        reported_at = self.now - timedelta(days=10)
+        assessment = self.policy.evaluate(
+            reported_at=reported_at,
+            evaluated_at=self.now,
+            category=ProductCategory.CLEANING,
+        )
+        self.assertEqual(assessment.status, ValidityStatus.STALE_WARNING)
+        self.assertTrue(assessment.is_currently_valid)
+
+    def test_cleaning_product_expires_after_15_days_per_adr04(self) -> None:
+        reported_at = self.now - timedelta(days=16)
+        assessment = self.policy.evaluate(
+            reported_at=reported_at,
+            evaluated_at=self.now,
+            category=ProductCategory.CLEANING,
+        )
+        self.assertEqual(assessment.status, ValidityStatus.EXPIRED)
+        self.assertFalse(assessment.is_currently_valid)
+
+    def test_high_volatility_exact_hour_boundaries_adr04(self) -> None:
+        # ADR-04: Alta volatilidad vigente hasta 48h, advertencia hasta 120h, excluido después.
+        for cat in (ProductCategory.FRUITS_VEGGIES, ProductCategory.PERISHABLE):
+            # 47 horas -> VIGENTE (VALID)
+            v_47 = self.policy.evaluate(self.now - timedelta(hours=47), self.now, category=cat)
+            self.assertEqual(v_47.status, ValidityStatus.VALID, f"Falla en 47h para {cat}")
+            self.assertTrue(v_47.is_currently_valid)
+
+            # 49 horas -> ADVERTENCIA (STALE_WARNING)
+            v_49 = self.policy.evaluate(self.now - timedelta(hours=49), self.now, category=cat)
+            self.assertEqual(v_49.status, ValidityStatus.STALE_WARNING, f"Falla en 49h para {cat}")
+            self.assertTrue(v_49.is_currently_valid)
+
+            # 121 horas -> EXPIRADO (EXPIRED)
+            v_121 = self.policy.evaluate(self.now - timedelta(hours=121), self.now, category=cat)
+            self.assertEqual(v_121.status, ValidityStatus.EXPIRED, f"Falla en 121h para {cat}")
+            self.assertFalse(v_121.is_currently_valid)
+
+    def test_low_volatility_exact_hour_boundaries_adr04(self) -> None:
+        # ADR-04: Baja volatilidad vigente hasta 168h (7d), advertencia hasta 360h (15d), excluido después.
+        for cat in (ProductCategory.GROCERY, ProductCategory.BEVERAGES, ProductCategory.PERSONAL_CARE, ProductCategory.CLEANING):
+            # 167 horas -> VIGENTE (VALID)
+            v_167 = self.policy.evaluate(self.now - timedelta(hours=167), self.now, category=cat)
+            self.assertEqual(v_167.status, ValidityStatus.VALID, f"Falla en 167h para {cat}")
+            self.assertTrue(v_167.is_currently_valid)
+
+            # 169 horas -> ADVERTENCIA (STALE_WARNING)
+            v_169 = self.policy.evaluate(self.now - timedelta(hours=169), self.now, category=cat)
+            self.assertEqual(v_169.status, ValidityStatus.STALE_WARNING, f"Falla en 169h para {cat}")
+            self.assertTrue(v_169.is_currently_valid)
+
+            # 361 horas -> EXPIRADO (EXPIRED)
+            v_361 = self.policy.evaluate(self.now - timedelta(hours=361), self.now, category=cat)
+            self.assertEqual(v_361.status, ValidityStatus.EXPIRED, f"Falla en 361h para {cat}")
+            self.assertFalse(v_361.is_currently_valid)
+
+    def test_exact_sub_minute_threshold_boundaries_48_120_168_360_hours(self) -> None:
+        """
+        Verifica con precisión de centésimas de hora los umbrales exactos de ADR-04:
+        - 48.00h (advertencia alta volatilidad)
+        - 120.00h (expiración alta volatilidad)
+        - 168.00h (advertencia baja volatilidad)
+        - 360.00h (expiración baja volatilidad)
+        evaluando los instantes inmediatamente anteriores y posteriores.
+        """
+        # --- ALTA VOLATILIDAD (FRUITS_VEGGIES y PERISHABLE) ---
+        for cat in (ProductCategory.FRUITS_VEGGIES, ProductCategory.PERISHABLE):
+            # 1. Frontera de 48 horas (2 días)
+            t_47_99 = self.now - timedelta(seconds=47 * 3600 + 3564)  # 47.99 horas
+            res_47_99 = self.policy.evaluate(t_47_99, self.now, category=cat)
+            self.assertEqual(res_47_99.status, ValidityStatus.VALID, "47.99h debe ser VALID")
+            self.assertTrue(res_47_99.is_currently_valid)
+
+            t_48_00 = self.now - timedelta(hours=48)                   # 48.00 horas exactas
+            res_48_00 = self.policy.evaluate(t_48_00, self.now, category=cat)
+            self.assertEqual(res_48_00.status, ValidityStatus.STALE_WARNING, "48.00h exactas debe ser STALE_WARNING")
+            self.assertTrue(res_48_00.is_currently_valid)
+
+            t_48_01 = self.now - timedelta(seconds=48 * 3600 + 36)    # 48.01 horas
+            res_48_01 = self.policy.evaluate(t_48_01, self.now, category=cat)
+            self.assertEqual(res_48_01.status, ValidityStatus.STALE_WARNING, "48.01h debe ser STALE_WARNING")
+            self.assertTrue(res_48_01.is_currently_valid)
+
+            # 2. Frontera de 120 horas (5 días)
+            t_119_99 = self.now - timedelta(seconds=120 * 3600 - 36)  # 119.99 horas
+            res_119_99 = self.policy.evaluate(t_119_99, self.now, category=cat)
+            self.assertEqual(res_119_99.status, ValidityStatus.STALE_WARNING, "119.99h debe ser STALE_WARNING")
+            self.assertTrue(res_119_99.is_currently_valid)
+
+            t_120_00 = self.now - timedelta(hours=120)                # 120.00 horas exactas
+            res_120_00 = self.policy.evaluate(t_120_00, self.now, category=cat)
+            self.assertEqual(res_120_00.status, ValidityStatus.STALE_WARNING, "120.00h exactas no ha expirado aún")
+            self.assertTrue(res_120_00.is_currently_valid)
+
+            t_120_01 = self.now - timedelta(seconds=120 * 3600 + 36)  # 120.01 horas
+            res_120_01 = self.policy.evaluate(t_120_01, self.now, category=cat)
+            self.assertEqual(res_120_01.status, ValidityStatus.EXPIRED, "120.01h debe ser EXPIRED")
+            self.assertFalse(res_120_01.is_currently_valid)
+
+        # --- BAJA VOLATILIDAD (GROCERY, BEVERAGES, PERSONAL_CARE, CLEANING) ---
+        for cat in (ProductCategory.GROCERY, ProductCategory.BEVERAGES, ProductCategory.PERSONAL_CARE, ProductCategory.CLEANING):
+            # 1. Frontera de 168 horas (7 días)
+            t_167_99 = self.now - timedelta(seconds=168 * 3600 - 36)  # 167.99 horas
+            res_167_99 = self.policy.evaluate(t_167_99, self.now, category=cat)
+            self.assertEqual(res_167_99.status, ValidityStatus.VALID, "167.99h debe ser VALID")
+            self.assertTrue(res_167_99.is_currently_valid)
+
+            t_168_00 = self.now - timedelta(hours=168)                # 168.00 horas exactas
+            res_168_00 = self.policy.evaluate(t_168_00, self.now, category=cat)
+            self.assertEqual(res_168_00.status, ValidityStatus.STALE_WARNING, "168.00h exactas debe ser STALE_WARNING")
+            self.assertTrue(res_168_00.is_currently_valid)
+
+            t_168_01 = self.now - timedelta(seconds=168 * 3600 + 36)  # 168.01 horas
+            res_168_01 = self.policy.evaluate(t_168_01, self.now, category=cat)
+            self.assertEqual(res_168_01.status, ValidityStatus.STALE_WARNING, "168.01h debe ser STALE_WARNING")
+            self.assertTrue(res_168_01.is_currently_valid)
+
+            # 2. Frontera de 360 horas (15 días)
+            t_359_99 = self.now - timedelta(seconds=360 * 3600 - 36)  # 359.99 horas
+            res_359_99 = self.policy.evaluate(t_359_99, self.now, category=cat)
+            self.assertEqual(res_359_99.status, ValidityStatus.STALE_WARNING, "359.99h debe ser STALE_WARNING")
+            self.assertTrue(res_359_99.is_currently_valid)
+
+            t_360_00 = self.now - timedelta(hours=360)                # 360.00 horas exactas
+            res_360_00 = self.policy.evaluate(t_360_00, self.now, category=cat)
+            self.assertEqual(res_360_00.status, ValidityStatus.STALE_WARNING, "360.00h exactas no ha expirado aún")
+            self.assertTrue(res_360_00.is_currently_valid)
+
+            t_360_01 = self.now - timedelta(seconds=360 * 3600 + 36)  # 360.01 horas
+            res_360_01 = self.policy.evaluate(t_360_01, self.now, category=cat)
+            self.assertEqual(res_360_01.status, ValidityStatus.EXPIRED, "360.01h debe ser EXPIRED")
+            self.assertFalse(res_360_01.is_currently_valid)
 
     def test_grocery_product_warns_when_approaching_expiration(self) -> None:
         # Abarrotes: vigente hasta 15 días; entre día 11 y 15 muestra advertencia de antigüedad

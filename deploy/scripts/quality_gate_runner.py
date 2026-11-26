@@ -51,7 +51,7 @@ class QualityGateReport:
 
 def scan_repository_for_hardcoded_secrets(root_dir: Path) -> GateStepResult:
     """Escanea los archivos Python del repositorio verificando que no existan llaves privadas o tokens expuestos."""
-    excluded_dirs = {".venv", "venv", ".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
+    excluded_dirs = {".venv", "venv", ".git", "__pycache__", ".pytest_cache", ".ruff_cache", ".uv_python", ".uv_cache"}
     violations: list[str] = []
 
     for py_file in root_dir.rglob("*.py"):
