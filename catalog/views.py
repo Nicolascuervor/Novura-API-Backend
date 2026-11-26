@@ -6,6 +6,7 @@ from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -253,6 +254,13 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
         )
 
 
+class CatalogPagination(PageNumberPagination):
+    """Paginación optimizada para productos y establecimientos del catálogo."""
+    page_size = 100
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
 class ProductViewSet(viewsets.ModelViewSet):
     """
     Catálogo de productos base y sus presentaciones.
@@ -262,6 +270,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Product.objects.filter(is_active=True).prefetch_related("presentations")
+    pagination_class = CatalogPagination
 
     def get_serializer_class(self):
         if self.action in ("create", "update", "partial_update"):
