@@ -142,6 +142,7 @@ class Category(models.Model):
     def clean(self):
         super().clean()
         from django.core.exceptions import ValidationError
+
         from core_domain.entities import ProductCategory
 
         if self.code:
@@ -205,17 +206,20 @@ class Product(models.Model):
     def clean(self):
         super().clean()
         from django.core.exceptions import ValidationError
+        from django.db import DatabaseError
+
         # Validar contra categorías activas de base de datos si existen registros
         try:
-            if Category.objects.exists():
-                active_cat = Category.objects.filter(code=self.category, is_active=True).first()
-                if not active_cat:
-                    raise ValidationError({
-                        "category": f"La categoría '{self.category}' no existe o se encuentra desactivada administrativamente."
-                    })
-        except Exception as e:
-            if isinstance(e, ValidationError):
-                raise e
+            has_categories = Category.objects.exists()
+        except DatabaseError:
+            has_categories = False
+
+        if has_categories:
+            active_cat = Category.objects.filter(code=self.category, is_active=True).first()
+            if not active_cat:
+                raise ValidationError({
+                    "category": f"La categoría '{self.category}' no existe o se encuentra desactivada administrativamente."
+                })
 
     class Meta:
         ordering = ["name"]

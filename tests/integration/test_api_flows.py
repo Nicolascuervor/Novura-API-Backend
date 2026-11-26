@@ -676,9 +676,10 @@ def test_get_categories_endpoint_returns_six_categories() -> None:
 @pytest.mark.django_db
 def test_category_serializer_and_model_clean_enforces_domain_and_adr04() -> None:
     """Verifica que Category.clean() y CategorySerializer bloqueen categorías incompatibles."""
-    from catalog.serializers import CategorySerializer
-    from catalog.models import Category
     from django.core.exceptions import ValidationError
+
+    from catalog.models import Category
+    from catalog.serializers import CategorySerializer
 
     # 1. Código inexistente en el enum del dominio puro
     ser_inv = CategorySerializer(data={"code": "NON_EXISTENT", "name": "Inexistente", "volatility": "low"})
@@ -699,9 +700,10 @@ def test_category_serializer_and_model_clean_enforces_domain_and_adr04() -> None
 @pytest.mark.django_db
 def test_product_mutation_serializer_rejects_invalid_and_deactivated_categories() -> None:
     """Verifica que los serializers y la API rechacen productos con categorías inválidas o desactivadas."""
-    from catalog.models import Category, Product
-    from catalog.serializers import ProductMutationSerializer
     from django.core.exceptions import ValidationError
+
+    from catalog.models import Category
+    from catalog.serializers import ProductMutationSerializer
 
     # Obtener categorías existentes de migración 0008
     cat_active = Category.objects.get(code="GROCERY")
