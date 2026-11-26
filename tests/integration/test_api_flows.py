@@ -644,5 +644,132 @@ def test_ec08_price_history_90_days_append_only_multi_establishment_and_instant_
     ]
 
 
+@pytest.mark.django_db
+def test_get_categories_endpoint_returns_six_categories() -> None:
+    """Verifica que el endpoint público GET /api/v1/categories/ exponga las 6 categorías canónicas."""
+    from catalog.models import Category
+    from core_domain.entities import ProductCategory
+
+    for idx, cat_enum in enumerate(ProductCategory, start=1):
+        vol = "high" if cat_enum in (ProductCategory.FRUITS_VEGGIES, ProductCategory.PERISHABLE) else "low"
+        Category.objects.update_or_create(
+            code=cat_enum.value,
+            defaults={
+                "name": cat_enum.value.replace("_", " ").title(),
+                "volatility": vol,
+                "color": "sky",
+                "display_order": idx,
+                "is_active": True,
+            },
+        )
+
+    client = APIClient()
+    res = client.get("/api/v1/categories/")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) >= 6
+    codes = {c["id"] for c in data}
+    expected = {"FRUITS_VEGGIES", "PERISHABLE", "GROCERY", "BEVERAGES", "PERSONAL_CARE", "CLEANING"}
+    assert expected.issubset(codes)
+
+
+@pytest.mark.django_db
+def test_category_serializer_and_model_clean_enforces_domain_and_adr04() -> None:
+    """Verifica que Category.clean() y CategorySerializer bloqueen categorías incompatibles."""
+    from catalog.serializers import CategorySerializer
+    from catalog.models import Category
+    from django.core.exceptions import ValidationError
+
+    # 1. Código inexistente en el enum del dominio puro
+    ser_inv = CategorySerializer(data={"code": "NON_EXISTENT", "name": "Inexistente", "volatility": "low"})
+    assert not ser_inv.is_valid()
+    assert "code" in ser_inv.errors
+
+    # 2. Volatilidad inconsistente con ADR-04 (FRUITS_VEGGIES debe ser 'high')
+    cat_fv = Category.objects.get(code="FRUITS_VEGGIES")
+    ser_vol = CategorySerializer(instance=cat_fv, data={"volatility": "low"}, partial=True)
+    assert not ser_vol.is_valid()
+    assert "volatility" in ser_vol.errors
+
+    # 3. Directamente a nivel de modelo .save()
+    with pytest.raises(ValidationError):
+        Category(code="NON_EXISTENT", name="Invalida", volatility="low").save()
+
+
+@pytest.mark.django_db
+def test_product_mutation_serializer_rejects_invalid_and_deactivated_categories() -> None:
+    """Verifica que los serializers y la API rechacen productos con categorías inválidas o desactivadas."""
+    from catalog.models import Category, Product
+    from catalog.serializers import ProductMutationSerializer
+    from django.core.exceptions import ValidationError
+
+    # Obtener categorías existentes de migración 0008
+    cat_active = Category.objects.get(code="GROCERY")
+    cat_inactive = Category.objects.get(code="CLEANING")
+    cat_inactive.is_active = False
+    cat_inactive.save()
+
+    # 1. Categoría no soportada por el dominio
+    ser_fake = ProductMutationSerializer(data={"name": "Producto Fake", "category": "ELECTRONICS"})
+    assert not ser_fake.is_valid()
+    assert "category" in ser_fake.errors
+
+    # 2. Categoría administrativamente desactivada
+    ser_inact = ProductMutationSerializer(data={"name": "Cloro Inactivo", "category": cat_inactive.code})
+    assert not ser_inact.is_valid()
+    assert "category" in ser_inact.errors
+
+    # 3. Categoría activa permitida
+    ser_ok = ProductMutationSerializer(data={"name": "Arroz Diana Extra", "category": cat_active.code})
+    assert ser_ok.is_valid()
+    prod = ser_ok.save()
+    assert prod.category == "GROCERY"
+
+    # 4. Product.save() directo bloquea categoría desactivada
+    with pytest.raises(ValidationError):
+        Product(name="Jabón Fallido", category=cat_inactive.code).save()
+
+
+@pytest.mark.django_db
+def test_deactivated_category_behavior_and_historical_preservation() -> None:
+    """
+    Verifica que al desactivar una categoría:
+    - Se excluye del endpoint público GET /api/v1/categories/.
+    - Los productos y reportes históricos preexistentes siguen existiendo y consultándose.
+    """
+    from catalog.models import Category, Product
+
+    cat_bev = Category.objects.get(code="BEVERAGES")
+    prod = Product.objects.filter(category=cat_bev.code).first()
+    if not prod:
+        prod = Product.objects.create(name="Jugo de Naranja Test", category=cat_bev.code)
+
+    client = APIClient()
+    # Ambos visibles
+    res1 = client.get("/api/v1/categories/")
+    assert res1.status_code == 200
+    active_codes_1 = [c["id"] for c in res1.json()]
+    assert "BEVERAGES" in active_codes_1
+    assert "FRUITS_VEGGIES" in active_codes_1
+
+    # Desactivar BEVERAGES
+    cat_bev.is_active = False
+    cat_bev.save()
+
+    # GET /api/v1/categories/ ya no lo entrega
+    res2 = client.get("/api/v1/categories/")
+    active_codes_2 = [c["id"] for c in res2.json()]
+    assert "BEVERAGES" not in active_codes_2
+    assert "FRUITS_VEGGIES" in active_codes_2
+
+    # El producto histórico sigue existiendo en BD y consultable
+    prod.refresh_from_db()
+    assert prod.category == "BEVERAGES"
+    res_prod = client.get(f"/api/v1/products/{prod.id}/")
+    assert res_prod.status_code == 200
+    assert res_prod.json()["category"] == "BEVERAGES"
+
+
+
 
 

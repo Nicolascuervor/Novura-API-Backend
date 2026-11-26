@@ -31,9 +31,12 @@ class BaseDimension(StrEnum):
 class ProductCategory(StrEnum):
     """Categorías con reglas diferenciadas de vigencia (EC-02)."""
 
-    PERISHABLE = "PERISHABLE"        # Perecederos (frutas, verduras, carnes, lácteos frescos)
-    GROCERY = "GROCERY"              # Abarrotes y consumo masivo no perecedero
-    PERSONAL_CARE = "PERSONAL_CARE"  # Aseo personal y del hogar
+    PERISHABLE = "PERISHABLE"        # Perecederos y Frescos (carnes, lácteos, pollo, huevos)
+    FRUITS_VEGGIES = "FRUITS_VEGGIES"  # Frutas y Verduras (hortalizas, tubérculos y frescos de campo)
+    GROCERY = "GROCERY"              # Granos y Abarrotes (despensa, café, harina, aceite, enlatados)
+    BEVERAGES = "BEVERAGES"          # Bebidas y Licores (gaseosas, jugos envasados, cervezas, agua)
+    PERSONAL_CARE = "PERSONAL_CARE"  # Cuidado Personal (higiene, cuidado bucal y corporal)
+    CLEANING = "CLEANING"            # Limpieza del Hogar (detergentes, lavaloza, desinfectantes)
 
 
 class SourceType(StrEnum):

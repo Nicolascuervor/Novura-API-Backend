@@ -31,6 +31,7 @@ from accounts.views import (
     PricecolTokenRefreshAPIView,
 )
 from catalog.views import (
+    CategoryViewSet,
     EstablishmentViewSet,
     PaymentMethodViewSet,
     ProductPresentationViewSet,
@@ -43,6 +44,7 @@ from pricing.views import (
 )
 
 router = DefaultRouter()
+router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"establishments", EstablishmentViewSet, basename="establishment")
 router.register(r"payment-methods", PaymentMethodViewSet, basename="payment-method")
 router.register(r"products", ProductViewSet, basename="product")

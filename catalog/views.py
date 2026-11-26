@@ -20,8 +20,9 @@ from accounts.permissions import (
 )
 from accounts.selectors import get_or_create_actor_profile
 from accounts.services import record_audit_event
-from catalog.models import Establishment, PaymentMethod, Product, ProductPresentation
+from catalog.models import Category, Establishment, PaymentMethod, Product, ProductPresentation
 from catalog.serializers import (
+    CategorySerializer,
     EstablishmentLogoImageUploadSerializer,
     EstablishmentSerializer,
     PaymentMethodIconUploadSerializer,
@@ -252,6 +253,18 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
             EstablishmentSerializer(updated, context={"request": request}).data,
             status=status.HTTP_200_OK,
         )
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Consulta pública de categorías del catálogo (EC-04).
+    Retorna la lista ordenada de categorías disponibles con su metadata de UI.
+    """
+
+    queryset = Category.objects.filter(is_active=True).order_by("display_order", "name")
+    serializer_class = CategorySerializer
+    pagination_class = None
+    permission_classes = []
 
 
 class CatalogPagination(PageNumberPagination):

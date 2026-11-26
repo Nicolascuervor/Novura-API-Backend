@@ -245,6 +245,18 @@ PRODUCT_PRESENTATIONS_CATALOG: dict[str, list[tuple[str, str, str, str, str, int
         ("Avícola del Quindío", "Cubeta x 30 und", "30.000", "und", "4101", 15800),
         ("Santa Reyes", "Medio Panal x 15 und", "15.000", "und", "4102", 8600),
     ],
+    "Gaseosa Cola Familiar": [
+        ("Postobón", "Mega 3.125 L", "3.125", "l", "4201", 6200),
+        ("Coca-Cola", "Familiar 2.5 L", "2.500", "l", "4202", 7800),
+    ],
+    "Jugo Envasado": [
+        ("Hit", "Tetra Pak 1 L", "1.000", "l", "4301", 3800),
+        ("Del Valle", "Botella PET 1.5 L", "1.500", "l", "4302", 4900),
+    ],
+    "Agua Envasada": [
+        ("Cristal", "Botellón 5 L", "5.000", "l", "4401", 5400),
+        ("Brisa", "Botella Personal 600 ml", "600.000", "ml", "4402", 1800),
+    ],
 }
 
 
