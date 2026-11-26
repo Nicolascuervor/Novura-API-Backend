@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Entregables 5 y 6 — Informe de Evaluación de Calidad (ISO/IEC 25040 e ISO/IEC 25012) y Calidad del Proceso (CMMI)</title>
+<style>
+  @page {
+    size: letter;
+    margin: 2.54cm 2.54cm 2.54cm 2.54cm;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000000;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
+  .cover-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    min-height: 22.5cm;
+    page-break-after: always;
+    padding-top: 0.5cm;
+    padding-bottom: 0.5cm;
+  }
+  .cover-title {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 0.5cm;
+    margin-bottom: 1.5cm;
+    line-height: 1.5;
+  }
+  .cover-page p {
+    text-align: center;
+    text-indent: 0;
+  }
+  .cover-authors p,
+  .cover-institution p,
+  .cover-teacher p,
+  .cover-footer p {
+    margin: 0.3cm 0;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  .cover-institution .uni-name {
+    margin-bottom: 1.0cm;
+  }
+  .toc-page {
+    page-break-after: always;
+  }
+  .toc-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-bottom: 1cm;
+  }
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.2cm;
+    line-height: 1.5;
+  }
+  .toc-item.level-1 {
+    font-weight: bold;
+    margin-top: 0.3cm;
+  }
+  .toc-item.level-2 {
+    padding-left: 1.0cm;
+    font-weight: normal;
+  }
+  .toc-text {
+    white-space: nowrap;
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #000000;
+    margin: 0 6px;
+  }
+  .toc-page-num {
+    white-space: nowrap;
+  }
+  h1.apa-level-1 {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.7cm;
+    margin-bottom: 0.4cm;
+    page-break-after: avoid;
+  }
+  h2.apa-level-2 {
+    text-align: left;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.55cm;
+    margin-bottom: 0.3cm;
+    page-break-after: avoid;
+  }
+  h3.apa-level-3 {
+    text-align: left;
+    font-weight: bold;
+    font-style: italic;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.4cm;
+    margin-bottom: 0.2cm;
+    page-break-after: avoid;
+  }
+  p {
+    margin-top: 0;
+    margin-bottom: 0.35cm;
+    text-align: left;
+    text-indent: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+  ul, ol {
+    margin-top: 0.2cm;
+    margin-bottom: 0.4cm;
+    padding-left: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  li {
+    margin-bottom: 0.18cm;
+    line-height: 1.5;
+  }
+  .apa-table-container {
+    margin-top: 0.4cm;
+    margin-bottom: 0.5cm;
+  }
+  .apa-table-number {
+    font-weight: bold;
+    font-style: normal;
+    margin-bottom: 0.05cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  .apa-table-title {
+    font-style: italic;
+    margin-bottom: 0.22cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  table.apa-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1.5px solid #000000;
+    border-bottom: 1.5px solid #000000;
+    font-size: 10.5pt;
+    line-height: 1.42;
+  }
+  table.apa-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table.apa-table thead th {
+    border-bottom: 1px solid #000000;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: bold;
+    vertical-align: bottom;
+  }
+  table.apa-table tbody td {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .apa-table-note {
+    font-size: 10.5pt;
+    margin-top: 0.18cm;
+    text-indent: 0;
+    line-height: 1.5;
+  }
+  .apa-reference {
+    padding-left: 1.27cm;
+    text-indent: -1.27cm;
+    margin-bottom: 0.35cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+  <!-- PORTADA INSTITUCIONAL -->
+  <div class="cover-page">
+    <div class="cover-title">
+      Entregables 5 y 6 (Corte 3) — Informe de Evaluación de Calidad del Producto (ISO/IEC 25040) y de los Datos (ISO/IEC 25012), Pruebas de Integración, Sistema y Carga (k6), Registro de Incidencias y Plan de Mejora del Proceso (CMMI V3.0): Plataforma Pricecol (Nuvora)
+    </div>
+
+    <div class="cover-authors">
+      <p>Presentado por:</p>
+      <p>Alzate Berrio, Samuel</p>
+      <p>Arias Lemus, Isabella</p>
+      <p>Cuervo Ríos, Nicolás</p>
+      <p>Giraldo Espinosa, Maria Victoria</p>
+      <p>Hoyos Escobar, Valentina</p>
+    </div>
+
+    <div class="cover-institution">
+      <p class="uni-name">C.U.E. Alexander von Humboldt</p>
+      <p>Facultad de ingenierías y ciencias básicas</p>
+      <p>Programa: Ingeniería de software</p>
+      <p>Asignatura: Modelos de Calidad (Seminario Nuclear IV)</p>
+    </div>
+
+    <div class="cover-teacher">
+      <p>Docente:</p>
+      <p>Ruben Dario Diaz Bautista</p>
+    </div>
+
+    <div class="cover-footer">
+      <p>Armenia/Quindío</p>
+      <p>2026</p>
+    </div>
+  </div>
+
+  <!-- TABLA DE CONTENIDO -->
+  <div class="toc-page">
+    <div class="toc-title">Tabla de Contenido</div>
+    <ul class="toc-list">
+      <li class="toc-item level-1">
+        <span class="toc-text">1. Evaluación del Producto Software conforme al Marco ISO/IEC 25040</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.1 Aplicación de las cinco actividades del proceso de evaluación ISO/IEC 25040</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.2 Matriz de evaluación de características ISO/IEC 25010:2023 frente a umbrales</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">4</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">2. Evaluación de la Calidad y Seguridad de los Datos Colaborativos (ISO/IEC 25012)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.1 Nuestro punto fuerte empresarial: veracidad, neutralidad y seguridad del dato</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.2 Resultados medidos en las dimensiones críticas de ISO/IEC 25012</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">3. Resultados de Pruebas de Integración, de Sistema y de Carga (k6)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">8</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">3.1 Suite automatizada de pruebas unitarias TDD, de integración y de sistema</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">8</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">3.2 Resultados de pruebas de carga y humo con k6 frente al escenario EC-04 y EC-08</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">9</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">4. Registro Formal de Incidencias y su Tratamiento</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">10</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">5. Calidad del Proceso y Plan de Mejora (Entregable 6 — CMMI V3.0 e ISO/IEC 330xx)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">12</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">5.1 Reflexión sobre la calidad del proceso seguido por el equipo (CMMI / ISO 330xx)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">12</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">5.2 Plan de mejora continua del producto y del proceso</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">13</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">Referencias</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">15</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <h1 class="apa-level-1">1. Evaluación del Producto Software conforme al Marco ISO/IEC 25040</h1>
+
+  <h2 class="apa-level-2">1.1 Aplicación de las cinco actividades del proceso de evaluación ISO/IEC 25040</h2>
+  <p>
+    La verificación integral de la calidad de la plataforma colaborativa <em>Pricecol (Nuvora)</em> al cierre del Corte 3 se estructuró siguiendo rigurosamente las cinco actividades secuenciales del marco internacional <strong>ISO/IEC 25040:2024 (SQuaRE — Quality evaluation framework)</strong>, asegurando que cada atributo priorizado en el Plan de Aseguramiento de Calidad del Corte 1 fuese evaluado con instrumentos reproducibles y umbrales cuantitativos:
+  </p>
+  <ol>
+    <li>
+      <strong>Actividad 1 — Establecer los requisitos de la evaluación:</strong> Se definieron como objetos de evaluación el sistema integrado (Núcleo + Módulo Comercial + Ampliaciones `A2` Historial de 90 días y `B2` Pipeline CI/CD) y el repositorio de datos colaborativos de precios, priorizando las características de <em>Corrección Funcional</em>, <em>Eficiencia de Desempeño</em>, <em>Capacidad de Interacción</em>, <em>Seguridad/Integridad</em> y <em>Mantenibilidad/Modificabilidad</em> de ISO/IEC 25010:2023.
+    </li>
+    <li>
+      <strong>Actividad 2 — Especificar la evaluación:</strong> Se seleccionaron las métricas `M-01` a `M-12` junto con sus escalas de puntuación y niveles de calificación (Aceptado cuando cumple el 100 % del umbral de prioridad Alta; Bloqueado en el Quality Gate cuando cualquier métrica cae por debajo del umbral).
+    </li>
+    <li>
+      <strong>Actividad 3 — Diseñar la evaluación:</strong> Se construyó el plan de pruebas automatizadas compuesto por 55 pruebas en `pytest`, el verificador de análisis estático y seguridad `deploy/scripts/quality_gate_runner.py` (`Ruff` + `Bandit`), el escáner de contenedores `Aqua Trivy` y los scripts de carga y humo en `k6` (`tests/load/k6_smoke_staging.js` y `tests/load/k6_quincena_500vu.js`).
+    </li>
+    <li>
+      <strong>Actividad 4 — Ejecutar la evaluación:</strong> Se ejecutaron las mediciones tanto en el entorno local como en el entorno limpio y reproducible de GitHub Actions (`Run #1` a `Run #4` sobre la rama `main`), recolectando trazas, reportes de cobertura y tiempos de respuesta percentil 95 ($p95$).
+    </li>
+    <li>
+      <strong>Actividad 5 — Concluir la evaluación:</strong> Se contrastaron los valores medidos frente a los umbrales pactados, emitiendo el dictamen de conformidad del 100 % tras el tratamiento y cierre de todas las incidencias registradas en la Sección 4.
+    </li>
+  </ol>
+
+  <h2 class="apa-level-2">1.2 Matriz de evaluación de características ISO/IEC 25010:2023 frente a umbrales</h2>
+  <p>
+    En la Tabla 1 se presenta el dictamen cuantitativo de la evaluación del producto software conforme a ISO/IEC 25040 para cada característica y subcaracterística de ISO/IEC 25010:2023 priorizada en el proyecto.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 1</p>
+    <p class="apa-table-title">Evaluación final del producto software bajo ISO/IEC 25040 e ISO/IEC 25010:2023</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 19%;">Característica / Subcaracterística (ISO 25010:2023)</th>
+          <th style="width: 15%;">Escenario y Métrica</th>
+          <th style="width: 22%;">Umbral de aceptación pactado (PAC)</th>
+          <th style="width: 24%;">Valor medido en Corte 3 (Evidencia)</th>
+          <th style="width: 20%;">Dictamen ISO/IEC 25040</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Capacidad de interacción:</strong> Operabilidad en contexto móvil</td>
+          <td><code>EC-01</code><br>(<code>M-02</code>)</td>
+          <td>Registro de precio en &le; 15 segundos en al menos el 80 % de los intentos con usuarios.</td>
+          <td><strong>11.4 segundos promedio</strong> y <strong>90 % de intentos exitosos</strong> en flujo de 3 pasos con autocompletado.</td>
+          <td><strong>SATISFACTORIO</strong><br>(Supera umbral en +10 %)</td>
+        </tr>
+        <tr>
+          <td><strong>Eficiencia de desempeño:</strong> Comportamiento temporal</td>
+          <td><code>EC-04</code>, <code>EC-08</code><br>(<code>M-04</code>, <code>M-11</code>)</td>
+          <td>Percentil 95 ($p95$) &le; 2.000 ms en comparación con concurrencia y &le; 500 ms en historial de 90 días.</td>
+          <td><strong>$p95 = 142\text{ ms}$</strong> en comparación con caché Redis/ETag y <strong>$p95 = 118\text{ ms}$</strong> en historial de 90 días (k6).</td>
+          <td><strong>SATISFACTORIO</strong><br>(92 % más rápido que el límite)</td>
+        </tr>
+        <tr>
+          <td><strong>Corrección funcional:</strong> Exactitud y neutralidad</td>
+          <td><code>EC-06</code><br>(<code>M-01</code>, <code>M-06</code>)</td>
+          <td>100 % de exactitud en conversión a unidad base (<code>$/g</code>, <code>$/ml</code>) y 100 % de distinción promocional.</td>
+          <td><strong>100 % de precisión</strong> en <code>UnitNormalizer</code> y <strong>100 % de aislamiento</strong> <code>is_promotional_content: true</code>.</td>
+          <td><strong>SATISFACTORIO</strong><br>(Cumplimiento del 100 %)</td>
+        </tr>
+        <tr>
+          <td><strong>Seguridad:</strong> Integridad, confidencialidad y resistencia</td>
+          <td><code>EC-03</code>, <code>EC-12</code><br>(<code>M-05</code>, <code>PAC-05</code>)</td>
+          <td>100 % de eliminación de GPS/EXIF, 0 errores SAST Bandit/Ruff y 0 vulnerabilidades críticas en Trivy.</td>
+          <td><strong>100 % de sanitización EXIF/GPS</strong> en RAM, <strong>0 hallazgos</strong> en Bandit/Ruff y <strong>0 críticos</strong> en Aqua Trivy.</td>
+          <td><strong>SATISFACTORIO</strong><br>(Blindaje verificado)</td>
+        </tr>
+        <tr>
+          <td><strong>Mantenibilidad:</strong> Modificabilidad y capacidad de prueba</td>
+          <td><code>EC-05</code>, <code>EC-12</code><br>(<code>M-09</code>, <code>M-10</code>)</td>
+          <td>Índice de modificación del núcleo <code>M-09 &le; 0.20</code> y cobertura TDD en <code>core_domain &ge; 95 %</code>.</td>
+          <td><strong><code>M-09 = 0.00</code></strong> (0 módulos rotos al integrar Módulo Comercial y A2/B2) y <strong>cobertura de <code>96.32 %</code></strong> (55 pruebas).</td>
+          <td><strong>SATISFACTORIO</strong><br>(Cero rediseño destructivo)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Todos los indicadores de prioridad Alta alcanzaron el nivel máximo de desempeño (4.0 – 5.0).</p>
+  </div>
+
+  <!-- SECCIÓN 2 -->
+  <h1 class="apa-level-1">2. Evaluación de la Calidad y Seguridad de los Datos Colaborativos (ISO/IEC 25012)</h1>
+
+  <h2 class="apa-level-2">2.1 Nuestro punto fuerte empresarial: veracidad, neutralidad y seguridad del dato</h2>
+  <p>
+    En una plataforma colaborativa de precios, el código puede ejecutarse sin errores sintácticos y aun así fracasar si los datos que presenta al ciudadano están contaminados por precios falsos, vencidos o sesgados comercialmente. Por ello, <em>Pricecol (Nuvora)</em> adoptó como su principal fortaleza y diferencial competitivo la <strong>calidad y seguridad de los datos bajo el estándar ISO/IEC 25012:2008</strong>, tratando cada reporte ciudadano y cada publicación comercial como un activo sujeto a verificación matemática, estadística y forense antes de su exposición pública.
+  </p>
+
+  <h2 class="apa-level-2">2.2 Resultados medidos en las dimensiones críticas de ISO/IEC 25012</h2>
+  <p>
+    En la Tabla 2 se documenta la evaluación de las cinco características críticas del modelo de calidad de datos ISO/IEC 25012 implementadas en el núcleo del dominio (`core_domain`) y verificadas mediante pruebas automatizadas.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 2</p>
+    <p class="apa-table-title">Evaluación de las dimensiones de calidad y seguridad de los datos conforme a ISO/IEC 25012</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 18%;">Dimensión ISO/IEC 25012</th>
+          <th style="width: 26%;">Mecanismo técnico implementado en Pricecol</th>
+          <th style="width: 24%;">Umbral de calidad del dato</th>
+          <th style="width: 32%;">Resultado obtenido y evidencia en pruebas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Exactitud</strong><br>(<em>Accuracy</em> — Inherente)</td>
+          <td>Motor <code>UnitNormalizer</code> (<code>core_domain/unit_normalizer.py</code>) y diccionario canónico de presentaciones (<code>ADR-06</code>).</td>
+          <td>Error de conversión &le; $0.0001\text{ COP}$ en el 100 % de unidades de masa y volumen.</td>
+          <td><strong>100 % de exactitud</strong> en conversión de <code>kg</code>, <code>lb</code>, <code>g</code>, <code>L</code>, <code>ml</code> y <code>cm3</code> a unidad base (<code>$/g</code>, <code>$/ml</code>), evitando distorsiones por reducción de empaque.</td>
+        </tr>
+        <tr>
+          <td><strong>Actualidad</strong><br>(<em>Currentness</em> — Inherente)</td>
+          <td>Política <code>ValidityPolicy</code> (2 días perecederos, 7 días abarrotes, 14 días aseo) e invalidación atómica en Redis (<code>ADR-02</code>, <code>ADR-04</code>).</td>
+          <td>Desaparición de precios anteriores como vigentes en &le; 1 segundo (<code>EC-02</code>).</td>
+          <td><strong>Actualización en &lt; 5 milisegundos</strong> al incrementar la clave de versión en Redis; transición automática a estados <code>SUPERSEDED</code> y <code>EXPIRED</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Credibilidad</strong><br>(<em>Credibility</em> — Inherente)</td>
+          <td>Motor antifraude de 4 capas <code>AnomalyDetector</code> (cerca MAD/IQR 35 %, reputación Bayesiana, foto y anti-ráfaga, <code>ADR-05</code>).</td>
+          <td>Tasa de detección &ge; 95 % de reportes falsos y 0 % de exposición sin advertencia (<code>EC-03</code>).</td>
+          <td><strong>100 % de detección</strong> sobre el conjunto de pruebas de reportes anómalos y ataques coordinados; separación en <code>VERIFIED</code>, <code>LOW_CONFIDENCE</code> y <code>ANOMALOUS</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Consistencia Histórica</strong><br>(<em>Consistency</em> — Inherente)</td>
+          <td>Persistencia <em>Append-Only</em> sobre <code>PriceReport</code> y motor <code>PriceHistoryEngine</code> de 90 días (<code>ADR-13</code>, <code>EC-08</code>).</td>
+          <td>0 % de contaminación de gráficas históricas por reportes marcados como <code>ANOMALOUS</code>.</td>
+          <td><strong>100 % de exclusión de datos fraudulentos</strong> en series históricas de 90 días y señalización explícita <code>requires_warning: true</code> en puntos <code>LOW_CONFIDENCE</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Confidencialidad y Seguridad</strong><br>(<em>Confidentiality</em> — Dependiente del sistema)</td>
+          <td>Sanitizador forense <code>sanitize_uploaded_evidence_image</code> y validador de firmas binarias <em>magic bytes</em> (<code>ADR-12</code>, Ley 1581).</td>
+          <td>0 % de metadatos EXIF o coordenadas GPS conservadas en imágenes almacenadas.</td>
+          <td><strong>100 % de remoción de GPS y EXIF en memoria RAM</strong> antes de escritura en disco y bloqueo del 100 % de archivos ejecutables disfrazados de imágenes.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Evaluación ejecutada sobre la suite de pruebas de calidad de datos y seguridad (`tests/unit/` y `tests/integration/`).</p>
+  </div>
+
+  <!-- SECCIÓN 3 -->
+  <h1 class="apa-level-1">3. Resultados de Pruebas de Integración, de Sistema y de Carga (k6)</h1>
+
+  <h2 class="apa-level-2">3.1 Suite automatizada de pruebas unitarias TDD, de integración y de sistema</h2>
+  <p>
+    Al cierre del Corte 3, el repositorio cuenta con una suite de **55 pruebas automatizadas** ejecutadas mediante `pytest` y auditadas de manera bloqueante por el script `deploy/scripts/quality_gate_runner.py`. En la Tabla 3 se desglosan los resultados por nivel de prueba (unitarias TDD sobre el dominio puro, de integración de base de datos/caché y de sistema extremo a extremo sobre la API REST).
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 3</p>
+    <p class="apa-table-title">Resultados consolidados de pruebas unitarias TDD, de integración y de sistema</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 24%;">Nivel de prueba y alcance</th>
+          <th style="width: 28%;">Módulos y flujos verificados</th>
+          <th style="width: 14%;">Casos ejecutados</th>
+          <th style="width: 16%;">Tasa de aprobación</th>
+          <th style="width: 18%;">Cobertura medida</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Pruebas Unitarias TDD</strong><br>(Dominio Puro)</td>
+          <td><code>unit_normalizer</code>, <code>validity_policy</code>, <code>anomaly_detector</code>, <code>neutral_comparator</code> y <code>price_history</code> (90 días).</td>
+          <td>31 pruebas</td>
+          <td>100 % (31/31)</td>
+          <td><strong>96.32 %</strong> en <code>core_domain</code> (Umbral &ge; 95 %)</td>
+        </tr>
+        <tr>
+          <td><strong>Pruebas de Integración</strong><br>(Persistencia, Redis y Seguridad)</td>
+          <td>Coexistencia comercio vs. comunidad, versionamiento Redis, limpieza forense EXIF/GPS y bloqueo de <em>magic bytes</em> falsos.</td>
+          <td>14 pruebas</td>
+          <td>100 % (14/14)</td>
+          <td>91.40 % en servicios e infraestructura</td>
+        </tr>
+        <tr>
+          <td><strong>Pruebas de Sistema (E2E API)</strong><br>(Contratos OpenAPI y Flujos)</td>
+          <td>Endpoints <code>/api/v1/compare/</code>, <code>/price-history/</code> (multi-tienda), <code>/promotions/</code>, <code>/reports/</code>, <code>ETag 304</code> y <code>/health/</code>.</td>
+          <td>10 pruebas</td>
+          <td>100 % (10/10)</td>
+          <td>89.15 % en vistas y serializadores DRF</td>
+        </tr>
+        <tr>
+          <td><strong>TOTAL SUITE AUTOMATIZADA</strong></td>
+          <td><strong>Núcleo + Módulo Comercial + Ampliaciones A2 y B2</strong></td>
+          <td><strong>55 pruebas</strong></td>
+          <td><strong>100 % (55/55)</strong></td>
+          <td><strong>96.32 % Dominio / 91.2 % Global</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Tiempo total de ejecución de la suite completa en GitHub Actions (Ubuntu Python 3.14): 9.21 segundos.</p>
+  </div>
+
+  <h2 class="apa-level-2">3.2 Resultados de pruebas de carga y humo con k6 frente al escenario EC-04 y EC-08</h2>
+  <p>
+    Para verificar el cumplimiento de los escenarios de eficiencia de desempeño (`EC-04` y `EC-08`), se empleó la herramienta de pruebas de carga **Grafana k6** en dos modalidades complementarias:
+  </p>
+  <ol>
+    <li><strong>Prueba de humo automatizada en Staging (`tests/load/k6_smoke_staging.js`):</strong> Ejecutada automáticamente en el Stage 3 de cada corrida de GitHub Actions sobre el entorno de Staging recién aprovisionado desde cero con PostgreSQL 16, Redis 7 y el mercado simulado del Quindío (`seed_quindio`).</li>
+    <li><strong>Prueba de carga concurrente de fin de semana de quincena (`EC-04`):</strong> Simulación de ráfagas de lectura concurrente sobre los endpoints de comparación (`/api/v1/compare/`), historial de 90 días (`/api/v1/products/{id}/price-history/`) y verificación de validación condicional `ETag` (`HTTP 304`).</li>
+  </ol>
+  <p>
+    En la Tabla 4 se registran las métricas de latencia y tasa de error obtenidas con k6 frente a los umbrales de aceptación.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 4</p>
+    <p class="apa-table-title">Resultados de las pruebas de desempeño y carga con Grafana k6 (EC-04 y EC-08)</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 28%;">Endpoint / Flujo evaluado con k6</th>
+          <th style="width: 18%;">Latencia mediana ($p50$)</th>
+          <th style="width: 18%;">Latencia percentil 95 ($p95$)</th>
+          <th style="width: 18%;">Umbral máximo ($p95$)</th>
+          <th style="width: 18%;">Tasa de error HTTP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET /api/v1/health/</code> (Healthcheck)</td>
+          <td>4.2 ms</td>
+          <td>11.8 ms</td>
+          <td>&le; 200 ms</td>
+          <td>0.00 % (Umbral &lt; 1 %)</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/v1/compare/?product_id=1</code> (Caché Redis caliente)</td>
+          <td>38.5 ms</td>
+          <td><strong>142.3 ms</strong></td>
+          <td><strong>&le; 2.000 ms (EC-04)</strong></td>
+          <td>0.00 % (Umbral &lt; 1 %)</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/v1/compare/</code> con cabecera <code>If-None-Match</code> (<code>HTTP 304</code>)</td>
+          <td>12.1 ms</td>
+          <td><strong>34.6 ms</strong></td>
+          <td>&le; 500 ms</td>
+          <td>0.00 % (Umbral &lt; 1 %)</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/v1/products/1/price-history/?days=90</code> (Opción A2)</td>
+          <td>31.4 ms</td>
+          <td><strong>118.7 ms</strong></td>
+          <td><strong>&le; 500 ms (EC-08)</strong></td>
+          <td>0.00 % (Umbral &lt; 1 %)</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/v1/reports/</code> (Escritura + Antifraude + Invalidación Redis)</td>
+          <td>64.0 ms</td>
+          <td><strong>189.5 ms</strong></td>
+          <td>&le; 1.000 ms</td>
+          <td>0.00 % (Umbral &lt; 1 %)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> La combinación de caché versionada en Redis y cabeceras `ETag 304` mantiene el percentil 95 de consulta más de diez veces por debajo del límite de 2 segundos exigido en `EC-04`.</p>
+  </div>
+
+  <!-- SECCIÓN 4 -->
+  <h1 class="apa-level-1">4. Registro Formal de Incidencias y su Tratamiento</h1>
+  <p>
+    Durante la ejecución de las pruebas estáticas (SAST), pruebas dinámicas e integración del pipeline CI/CD en GitHub Actions, se registraron y trataron formalmente seis incidencias técnicas. Lejos de ocultarlas, su registro documenta la efectividad real de nuestros controles de calidad (tal como valora la sección 10 de la guía del proyecto). En la Tabla 5 se detalla cada incidencia, su causa raíz, la acción correctiva aplicada y la evidencia de cierre.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 5</p>
+    <p class="apa-table-title">Registro de incidencias de calidad y seguridad detectadas y su tratamiento correctivo</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 11%;">ID / Corte</th>
+          <th style="width: 18%;">Fase / Herramienta detectora</th>
+          <th style="width: 27%;">Descripción de la incidencia y causa raíz</th>
+          <th style="width: 28%;">Tratamiento y acción correctiva aplicada</th>
+          <th style="width: 16%;">Estado y evidencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>INC-01</strong><br>(Corte 2)</td>
+          <td>SAST Bandit / Ruff (<code>S105</code>, <code>S106</code>)</td>
+          <td>Detección de valores por defecto de claves de prueba en configuración que activaban alerta de posibles secretos codificados.</td>
+          <td>Extracción total de credenciales a variables de entorno y creación del escáner de secretos en <code>quality_gate_runner.py</code>.</td>
+          <td><strong>CERRADA</strong><br>(0 secretos expuestos)</td>
+        </tr>
+        <tr>
+          <td><strong>INC-02</strong><br>(Corte 2)</td>
+          <td>SAST Ruff (<code>BLE001</code> — <em>Blind Except</em>)</td>
+          <td>Captura genérica <code>except Exception:</code> en tareas asíncronas de Celery que podía ocultar errores de conexión con Redis.</td>
+          <td>Reemplazo por captura tipada de excepciones específicas (<code>RedisError</code>, <code>DatabaseError</code>) con registro estructurado en logs.</td>
+          <td><strong>CERRADA</strong><br>(0 hallazgos <code>BLE001</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>INC-03</strong><br>(Corte 2)</td>
+          <td>Auditoría de Privacidad (Ley 1581)</td>
+          <td>Las fotos tomadas con smartphones conservaban etiquetas EXIF con latitud/longitud GPS del ciudadano reportante.</td>
+          <td>Implementación mediante TDD del sanitizador en memoria RAM (<code>ADR-12</code>) que re-codifica la imagen sin segmentos EXIF/GPS.</td>
+          <td><strong>CERRADA</strong><br>(Verificada con TDD)</td>
+        </tr>
+        <tr>
+          <td><strong>INC-04</strong><br>(Corte 3)</td>
+          <td>GitHub Actions Run #1 (Quality Gate — <code>EXE001</code>)</td>
+          <td>El Quality Gate bloqueó el commit <code>b7e05b5</code> en Ubuntu porque <code>manage.py:1:1</code> tenía línea <em>shebang</em> sin bit ejecutable POSIX en Git.</td>
+          <td>Eliminación de la línea <em>shebang</em> innecesaria en <code>manage.py</code> y ajuste de configuración en <code>pyproject.toml</code>.</td>
+          <td><strong>CERRADA</strong><br>(Commit <code>1d57d92</code>; sirvió como prueba de bloqueo)</td>
+        </tr>
+        <tr>
+          <td><strong>INC-05</strong><br>(Corte 3)</td>
+          <td>GitHub Actions Run #2 (Stage 2 — Trivy)</td>
+          <td>Fallo de resolución externa en GitHub Marketplace: la acción <code>aquasecurity/trivy-action@0.28.0</code> fue despublicada por el proveedor.</td>
+          <td>Sustitución de la acción de terceros por la invocación directa de la imagen oficial <code>docker run aquasec/trivy:latest image</code>.</td>
+          <td><strong>CERRADA</strong><br>(Commit <code>98e801d</code>; Stage 2 en verde)</td>
+        </tr>
+        <tr>
+          <td><strong>INC-06</strong><br>(Corte 3)</td>
+          <td>GitHub Actions Run #3 (Stage 3 — Staging)</td>
+          <td>Error <code>ModuleNotFoundError: No module named 'packaging'</code> al iniciar el transporte Redis de Kombu/Celery bajo Python 3.14 en Staging.</td>
+          <td>Declaración explícita de <code>packaging&gt;=24.0</code> en <code>pyproject.toml</code>, <code>Dockerfile</code> y flujo de Staging.</td>
+          <td><strong>CERRADA</strong><br>(Commit <code>4877978</code>; Run #4 100 % verde)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> La trazabilidad completa de las incidencias `INC-04` a `INC-06` es públicamente verificable en la pestaña <em>Actions</em> del repositorio GitHub.</p>
+  </div>
+
+  <!-- SECCIÓN 5 -->
+  <h1 class="apa-level-1">5. Calidad del Proceso y Plan de Mejora (Entregable 6 — CMMI V3.0 e ISO/IEC 330xx)</h1>
+
+  <h2 class="apa-level-2">5.1 Reflexión sobre la calidad del proceso seguido por el equipo (CMMI / ISO 330xx)</h2>
+  <p>
+    Una lección fundamental de la asignatura Modelos de Calidad es la distinción entre la <strong>calidad del producto</strong> (medida con ISO/IEC 25010 e ISO/IEC 25012) y la <strong>calidad del proceso</strong> con el que el equipo construye y evoluciona dicho producto (evaluada conceptualmente bajo el modelo <strong>CMMI V3.0</strong> y la familia de normas <strong>ISO/IEC 330xx</strong>, sucesora de ISO/IEC 15504 SPICE).
+  </p>
+  <p>
+    Al analizar la evolución del equipo a través de los tres cortes académicos frente a las áreas de práctica de CMMI V3.0, identificamos una progresión clara desde un nivel inicial hacia prácticas propias de los <strong>Niveles de Madurez 2 (Gestionado) y 3 (Definido)</strong>:
+  </p>
+  <ul>
+    <li>
+      <strong>En el Corte 1 (Nivel 1 a Nivel 2 — Gestión de Requisitos y Planificación):</strong> El equipo estableció la línea base de requisitos, formuló el Plan de Aseguramiento de Calidad (PAC) y definió estándares de documentación mediante plantillas uniformes de ADRs y diagramas C4.
+    </li>
+    <li>
+      <strong>En el Corte 2 (Nivel 2 a Nivel 3 — Solución Técnica, Verificación y Validación):</strong> Dejamos atrás la codificación artesanal sin pruebas previas y adoptamos <strong>Test-Driven Development (TDD)</strong> como estándar de proceso para el paquete `core_domain`, complementado con pruebas reales de usabilidad con usuarios (`EC-01`) y análisis estático SAST (`Ruff` y `Bandit`).
+    </li>
+    <li>
+      <strong>En el Corte 3 (Nivel 3 Consolidado — Gestión de la Configuración, Integración del Producto y Estimación Cuantitativa):</strong> Alcanzamos tres hitos de madurez de proceso: 1) realizamos el análisis de impacto y la estimación de esfuerzo (18.0 h) <em>antes</em> de modificar el sistema (commit `1b1cb51`) y lo contrastamos empíricamente al cierre (17.0 h reales, commit `b98b0ea`); 2) automatizamos el aseguramiento de calidad mediante un pipeline CI/CD bloqueante en GitHub Actions; y 3) garantizamos la reproducibilidad del entorno de Staging desde cero sin intervención manual.
+    </li>
+  </ul>
+
+  <h2 class="apa-level-2">5.2 Plan de mejora continua del producto y del proceso</h2>
+  <p>
+    Como cierre del ciclo de evaluación y mejora continua, en la Tabla 6 se formula el Plan de Mejora estructurado en acciones concretas para el producto software y para el proceso de ingeniería del equipo, asociando cada acción con el área de capacidad de CMMI V3.0 / ISO/IEC 330xx correspondiente y su indicador de verificación.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 6</p>
+    <p class="apa-table-title">Plan de mejora continua del producto y del proceso referenciado frente a CMMI V3.0 e ISO/IEC 330xx</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 16%;">Ámbito de mejora</th>
+          <th style="width: 24%;">Área de práctica CMMI V3.0 / Proceso ISO 330xx</th>
+          <th style="width: 34%;">Acción de mejora formulada</th>
+          <th style="width: 26%;">Métrica / Indicador de verificación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Proceso de Ingeniería</strong></td>
+          <td>Verificación y Validación (VV) / Gestión de Configuración (CM)</td>
+          <td>Ejecutar el script <code>quality_gate_runner.py</code> dentro de un contenedor Docker Linux local mediante un hook de <em>pre-push</em> para eliminar discrepancias entre Windows local y Ubuntu en CI/CD (aprendizaje de <code>INC-04</code>).</td>
+          <td>0 fallos por reglas de entorno POSIX en ejecuciones remotas de GitHub Actions.</td>
+        </tr>
+        <tr>
+          <td><strong>Proceso de Ingeniería</strong></td>
+          <td>Estimación (EST) y Monitorización y Control (MC)</td>
+          <td>Mantener un archivo de bloqueo determinista de dependencias transitivas (<code>uv.lock</code> / <code>requirements.lock</code>) sincronizado con la versión exacta de Python del contenedor de producción (aprendizaje de <code>INC-06</code>).</td>
+          <td>100 % de paridad de paquetes entre desarrollo, Staging y Producción.</td>
+        </tr>
+        <tr>
+          <td><strong>Producto Software</strong><br>(Evolución Funcional)</td>
+          <td>Desarrollo y Gestión de Requisitos (RDM) / Solución Técnica (TS)</td>
+          <td>Activar el módulo opcional de alertas asíncronas de bajada de precio (Web Push / Correo vía Celery) aprovechando el motor <code>PriceHistoryEngine</code> cuando un producto seguido caiga por debajo de su mínimo de 30 días.</td>
+          <td>Notificación enviada en &lt; 30 segundos tras detectarse una variación negativa validada (`VERIFIED`).</td>
+        </tr>
+        <tr>
+          <td><strong>Producto Software</strong><br>(Calidad de Datos)</td>
+          <td>Gestión de Calidad de Datos (ISO/IEC 25012 — Exactitud y Completitud)</td>
+          <td>Incorporar lectura asistida por OCR ligero en el trabajador asíncrono de Celery para pre-validar que el número en la etiqueta fotografiada coincida con el valor digitado por el reportante.</td>
+          <td>Reducción del 50 % en reportes que quedan en estado intermedio <code>LOW_CONFIDENCE</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Las áreas de práctica (VV, CM, EST, MC, RDM, TS) corresponden a la estructura del modelo CMMI Development V3.0 (CMMI Institute, 2023).</p>
+  </div>
+
+  <!-- REFERENCIAS -->
+  <h1 class="apa-level-1">Referencias</h1>
+
+  <p class="apa-reference">
+    Bass, L., Clements, P., &amp; Kazman, R. (2021). <em>Software architecture in practice</em> (4th ed.). Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    Beck, K. (2003). <em>Test-driven development: By example</em>. Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    CMMI Institute. (2023). <em>CMMI V3.0: Model at a glance</em>. Information Systems Audit and Control Association (ISACA).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2008). <em>Software engineering — Software product Quality Requirements and Evaluation (SQuaRE) — Data quality model</em> (ISO/IEC Standard No. 25012:2008).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2015). <em>Information technology — Process assessment — Concepts and terminology</em> (ISO/IEC Standard No. 33001:2015).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2023). <em>Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model</em> (ISO/IEC Standard No. 25010:2023).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2024). <em>Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Quality evaluation framework</em> (ISO/IEC Standard No. 25040:2024).
+  </p>
+  <p class="apa-reference">
+    Piattini, M., García, F., Garzás, J., &amp; Genero, M. (2020). <em>Calidad de sistemas de información</em> (5.ª ed.). RA-MA Editorial.
+  </p>
+
+</body>
+</html>

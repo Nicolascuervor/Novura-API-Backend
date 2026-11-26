@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Entregable 6 — Evaluación de la Arquitectura, Documento de Arquitectura Final y Registro Completo de ADRs</title>
+<style>
+  @page {
+    size: letter;
+    margin: 2.54cm 2.54cm 2.54cm 2.54cm;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000000;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
+  .cover-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    min-height: 22.5cm;
+    page-break-after: always;
+    padding-top: 0.5cm;
+    padding-bottom: 0.5cm;
+  }
+  .cover-title {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 0.5cm;
+    margin-bottom: 1.5cm;
+    line-height: 1.5;
+  }
+  .cover-page p {
+    text-align: center;
+    text-indent: 0;
+  }
+  .cover-authors p,
+  .cover-institution p,
+  .cover-teacher p,
+  .cover-footer p {
+    margin: 0.3cm 0;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  .cover-institution .uni-name {
+    margin-bottom: 1.0cm;
+  }
+  .toc-page {
+    page-break-after: always;
+  }
+  .toc-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-bottom: 1cm;
+  }
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.2cm;
+    line-height: 1.5;
+  }
+  .toc-item.level-1 {
+    font-weight: bold;
+    margin-top: 0.3cm;
+  }
+  .toc-item.level-2 {
+    padding-left: 1.0cm;
+    font-weight: normal;
+  }
+  .toc-text {
+    white-space: nowrap;
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #000000;
+    margin: 0 6px;
+  }
+  .toc-page-num {
+    white-space: nowrap;
+  }
+  h1.apa-level-1 {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.7cm;
+    margin-bottom: 0.4cm;
+    page-break-after: avoid;
+  }
+  h2.apa-level-2 {
+    text-align: left;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.55cm;
+    margin-bottom: 0.3cm;
+    page-break-after: avoid;
+  }
+  h3.apa-level-3 {
+    text-align: left;
+    font-weight: bold;
+    font-style: italic;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.4cm;
+    margin-bottom: 0.2cm;
+    page-break-after: avoid;
+  }
+  p {
+    margin-top: 0;
+    margin-bottom: 0.35cm;
+    text-align: left;
+    text-indent: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+  ul, ol {
+    margin-top: 0.2cm;
+    margin-bottom: 0.4cm;
+    padding-left: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  li {
+    margin-bottom: 0.18cm;
+    line-height: 1.5;
+  }
+  .apa-table-container {
+    margin-top: 0.4cm;
+    margin-bottom: 0.5cm;
+  }
+  .apa-table-number {
+    font-weight: bold;
+    font-style: normal;
+    margin-bottom: 0.05cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  .apa-table-title {
+    font-style: italic;
+    margin-bottom: 0.22cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  table.apa-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1.5px solid #000000;
+    border-bottom: 1.5px solid #000000;
+    font-size: 10.5pt;
+    line-height: 1.42;
+  }
+  table.apa-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table.apa-table thead th {
+    border-bottom: 1px solid #000000;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: bold;
+    vertical-align: bottom;
+  }
+  table.apa-table tbody td {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .apa-table-note {
+    font-size: 10.5pt;
+    margin-top: 0.18cm;
+    text-indent: 0;
+    line-height: 1.5;
+  }
+  .apa-reference {
+    padding-left: 1.27cm;
+    text-indent: -1.27cm;
+    margin-bottom: 0.35cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+  <!-- PORTADA INSTITUCIONAL -->
+  <div class="cover-page">
+    <div class="cover-title">
+      Entregable 6 (Corte 3) — Evaluación de la Arquitectura Basada en Escenarios (ATAM), Respuesta al Cambio (EC-05), Documento de Arquitectura Final (Modelo C4 v3) y Registro Completo de ADRs: Plataforma Pricecol (Nuvora)
+    </div>
+
+    <div class="cover-authors">
+      <p>Presentado por:</p>
+      <p>Alzate Berrio, Samuel</p>
+      <p>Arias Lemus, Isabella</p>
+      <p>Cuervo Ríos, Nicolás</p>
+      <p>Giraldo Espinosa, Maria Victoria</p>
+      <p>Hoyos Escobar, Valentina</p>
+    </div>
+
+    <div class="cover-institution">
+      <p class="uni-name">C.U.E. Alexander von Humboldt</p>
+      <p>Facultad de ingenierías y ciencias básicas</p>
+      <p>Programa: Ingeniería de software</p>
+      <p>Asignatura: Arquitectura de Software II (Seminario Nuclear IV)</p>
+    </div>
+
+    <div class="cover-teacher">
+      <p>Docente:</p>
+      <p>Ruben Dario Diaz Bautista</p>
+    </div>
+
+    <div class="cover-footer">
+      <p>Armenia/Quindío</p>
+      <p>2026</p>
+    </div>
+  </div>
+
+  <!-- TABLA DE CONTENIDO -->
+  <div class="toc-page">
+    <div class="toc-title">Tabla de Contenido</div>
+    <ul class="toc-list">
+      <li class="toc-item level-1">
+        <span class="toc-text">1. Evaluación de la Arquitectura Basada en Escenarios (Inspirada en ATAM)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.1 Árbol de utilidad y priorización de escenarios de calidad (EC-01 a EC-12)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.2 Identificación de riesgos, puntos de sensibilidad, no-riesgos y trade-offs</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">4</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">2. Análisis de Respuesta de la Arquitectura al Cambio (EC-05, EC-08 y EC-12)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.1 Evaluación de modificabilidad sobre el núcleo de dominio (Métrica M-09)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.2 Contraste entre el esfuerzo estimado y el esfuerzo real (Cortes 2 y 3)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">7</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">3. Análisis Retrospectivo: Decisiones que el Equipo Cambiaría y Por Qué</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">8</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">4. Documento de Arquitectura Final Actualizado (Modelo C4 Versión 3.0)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">10</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">4.1 Nivel 1 (Contexto) y Nivel 2 (Contenedores en Producción y CI/CD)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">10</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">4.2 Nivel 3 (Componentes del Monolito Modular y Paquete Puro core_domain)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">11</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">5. Registro Completo y Consolidado de Decisiones Arquitectónicas (ADR-01 a ADR-14)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">12</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">Referencias</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">16</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <h1 class="apa-level-1">1. Evaluación de la Arquitectura Basada en Escenarios (Inspirada en ATAM)</h1>
+
+  <h2 class="apa-level-2">1.1 Árbol de utilidad y priorización de escenarios de calidad (EC-01 a EC-12)</h2>
+  <p>
+    La evaluación final de la arquitectura de <em>Pricecol (Nuvora)</em> se ejecutó siguiendo los principios del método <em>Architecture Tradeoff Analysis Method</em> (ATAM) propuesto por Bass, Clements y Kazman (2021). El propósito de esta evaluación consiste en determinar con evidencia empírica cómo las decisiones estructurales tomadas a lo largo de los tres cortes académicos satisfacen los atributos de calidad críticos del sistema —con énfasis en nuestro punto fuerte institucional: la calidad, neutralidad y seguridad de los datos colaborativos— y qué compromisos arquitectónicos (<em>trade-offs</em>) emergen de dichas decisiones.
+  </p>
+  <p>
+    El árbol de utilidad del sistema articula los escenarios de referencia de la guía (`EC-01` a `EC-06`) con los escenarios de evolución y operación continua refinados por el equipo hasta alcanzar los doce escenarios vigentes al cierre del Corte 3:
+  </p>
+  <ul>
+    <li><strong>Capacidad de interacción (ISO/IEC 25010 — EC-01):</strong> Registro de un precio en góndola con conectividad móvil limitada en 15 segundos o menos en al menos el 80 % de los intentos (medido en prueba de usabilidad: 11.4 segundos promedio, 90 % de éxito).</li>
+    <li><strong>Actualidad del dato (ISO/IEC 25012 — EC-02):</strong> Invalidación de precios anteriores cuando un comercio o ciudadano reporta un cambio en menos de 1 segundo mediante versionamiento atómico de claves en Redis (medido: &lt; 5 ms).</li>
+    <li><strong>Credibilidad del dato e integridad (ISO/IEC 25012 / 25010 — EC-03):</strong> Detección y aislamiento de reportes falsos o ataques coordinados de competidores mediante motor antifraude de cuatro capas con tasa de detección &ge; 95 % (medido en suite TDD: 100 %).</li>
+    <li><strong>Eficiencia de desempeño (ISO/IEC 25010 — EC-04):</strong> Consulta concurrente de comparaciones e historiales en quincena con percentil 95 ($p95$) &le; 2.0 segundos (medido con k6: $p95 = 142\text{ ms}$ en comparación y $p95 = 118\text{ ms}$ en historial de 90 días).</li>
+    <li><strong>Mantenibilidad y modificabilidad (ISO/IEC 25010 — EC-05):</strong> Incorporación del módulo comercial y de las ampliaciones del Corte 3 sin rediseño estructural del núcleo (`M-09 = 0.00`).</li>
+    <li><strong>Corrección funcional y neutralidad (ISO/IEC 25010 — EC-06):</strong> Ordenamiento estricto por precio por unidad base (`$/g`, `$/ml`) y distinción del 100 % del contenido promocional (`is_promotional_content: true`).</li>
+    <li><strong>Exactitud histórica y tendencia (ISO/IEC 25012 / 25010 — EC-08, Opción A2):</strong> Consulta de serie histórica de 90 días multi-establecimiento con exclusión del 100 % de reportes `ANOMALOUS` y latencia $p95 \le 500\text{ ms}$.</li>
+    <li><strong>Automatización y entrega continua (DevSecOps — EC-12, Opción B2):</strong> Bloqueo del 100 % de cambios que incumplan el Quality Gate (TDD &ge; 95 %, SAST Ruff/Bandit = 0 errores, Trivy = 0 críticos), despliegue de Staging desde cero sin pasos manuales y reversión en &lt; 90 segundos.</li>
+  </ul>
+
+  <h2 class="apa-level-2">1.2 Identificación de riesgos, puntos de sensibilidad, no-riesgos y trade-offs</h2>
+  <p>
+    En la Tabla 1 se consolida la matriz de evaluación ATAM del sistema integrado al cierre del Corte 3, vinculando cada escenario y decisión arquitectónica (ADR) con sus puntos de sensibilidad, sus compromisos de diseño (<em>trade-offs</em>) y los riesgos residuales monitorizados.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 1</p>
+    <p class="apa-table-title">Matriz de evaluación arquitectónica ATAM: puntos de sensibilidad, trade-offs y riesgos</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 16%;">Escenario y ADR</th>
+          <th style="width: 28%;">Punto de sensibilidad (Parámetro crítico)</th>
+          <th style="width: 30%;">Trade-off (Compromiso entre atributos)</th>
+          <th style="width: 26%;">Riesgo / No-Riesgo evaluado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>EC-04, EC-05<br>(ADR-01, ADR-11)</td>
+          <td>Memoria RAM disponible en la instancia Cloud (<code>e2-micro</code> con 1 GB RAM) y concurrencia de workers (<code>--concurrency=2</code>).</td>
+          <td><strong>Eficiencia y Mantenibilidad vs. Escalabilidad independiente:</strong> Se prioriza latencia en memoria nula y bajo consumo de RAM del Monolito Modular frente al escalado por servicio independiente de microservicios.</td>
+          <td><strong>Riesgo controlado (R-01):</strong> Saturación de RAM ante picos masivos de subida de fotos simultáneas; mitigado limitando tamaño a 5 MB y procesando en streaming.</td>
+        </tr>
+        <tr>
+          <td>EC-02, EC-04<br>(ADR-02, ADR-10)</td>
+          <td>Atomicidad del incremento de la clave de versión del producto en Redis (<code>INCR product:v:{id}</code>) tras escritura.</td>
+          <td><strong>Actualidad del dato y Desempeño vs. Consumo de memoria caché:</strong> Las claves con versión anterior permanecen en Redis hasta que expira su TTL (15 min), usando memoria temporal a cambio de invalidación instantánea (&lt; 5 ms).</td>
+          <td><strong>No-Riesgo (NR-01):</strong> La política <code>allkeys-lru</code> de Redis desaloja automáticamente versiones antiguas sin riesgo de desbordamiento.</td>
+        </tr>
+        <tr>
+          <td>EC-03, EC-06<br>(ADR-05, ADR-09)</td>
+          <td>Umbral de desviación estadística MAD/IQR fijado en 35 % para clasificar un reporte como dudoso o anómalo.</td>
+          <td><strong>Credibilidad e Integridad del dato vs. Disponibilidad inmediata de ofertas extremas reales:</strong> Una liquidación real &gt; 35 % reportada por un usuario nuevo sin foto queda en estado <code>LOW_CONFIDENCE</code> con advertencia hasta recibir evidencia.</td>
+          <td><strong>Riesgo mitigado (R-02):</strong> Falso positivo en descuentos agresivos; mitigado otorgando bono de confianza inmediato (+0.25) cuando el usuario adjunta fotografía o cuando lo publica el perfil oficial del comercio.</td>
+        </tr>
+        <tr>
+          <td>EC-08<br>(ADR-13, Opción A2)</td>
+          <td>Índice compuesto B-Tree <code>(presentation_id, establishment_id, -reported_at)</code> y ventana máxima de 90 días.</td>
+          <td><strong>Simplicidad estructural y Modificabilidad vs. Reconstrucción de eventos complejos:</strong> El modelo <em>Append-Only</em> evita la complejidad de <em>Event Sourcing</em> completo a cambio de acotar la consulta en línea a 90 días sobre un horizonte activo de 365 días.</td>
+          <td><strong>No-Riesgo (NR-02):</strong> Con ~280 bytes por fila, 100.000 reportes anuales ocupan ~28 MB (&lt; 0.1 % del disco), manteniendo lecturas en &lt; 15 ms.</td>
+        </tr>
+        <tr>
+          <td>EC-12<br>(ADR-14, Opción B2)</td>
+          <td>Tiempo de ejecución del pipeline CI/CD (4 etapas) y paridad entre entornos de desarrollo (Windows) y ejecución (Linux).</td>
+          <td><strong>Confiabilidad y Seguridad del despliegue (DevSecOps) vs. Velocidad de publicación inmediata:</strong> Cada commit debe superar 3.5 minutos de controles bloqueantes (TDD, Bandit, Trivy, Staging + k6) antes de habilitar promoción a producción.</td>
+          <td><strong>Riesgo eliminado (R-03):</strong> Diferencias de permisos de archivo o paquetes entre Windows y Linux; eliminado mediante el Quality Gate automatizado en Ubuntu.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Evaluación elaborada conforme a la taxonomía de riesgos, puntos de sensibilidad y trade-offs de Bass et al. (2021).</p>
+  </div>
+
+  <!-- SECCIÓN 2 -->
+  <h1 class="apa-level-1">2. Análisis de Respuesta de la Arquitectura al Cambio (EC-05, EC-08 y EC-12)</h1>
+
+  <h2 class="apa-level-2">2.1 Evaluación de modificabilidad sobre el núcleo de dominio (Métrica M-09)</h2>
+  <p>
+    El escenario de calidad `EC-05` fue introducido en la guía del proyecto para verificar con evidencia objetiva si la arquitectura diseñada en el Corte 1 y construida en el Corte 2 era capaz de absorber dos olas sucesivas de cambio de alcance sin requerir rediseño estructural:
+  </p>
+  <ol>
+    <li><strong>Primer incremento evolutivo (Transición Corte 2 a Corte 3 — Módulo Comercial):</strong> Incorporación de perfiles voluntarios de comercio, publicación de precios oficiales, motor de promociones con reglas (`PERCENTAGE_DISCOUNT`, `SPECIAL_PRICE`, `BUY_X_GET_Y`) y coexistencia con los reportes ciudadanos.</li>
+    <li><strong>Segundo incremento evolutivo (Ampliación Anexo 1 del Corte 3 — Opciones A2 y B2):</strong> Incorporación del motor de historial y tendencia de precios a 90 días con comparación multi-establecimiento (`A2` / `EC-08`) y del pipeline de entrega continua con Quality Gate, escaneo Trivy, entorno Staging con k6 y script de reversión (`B2` / `EC-12`).</li>
+  </ol>
+  <p>
+    La métrica de impacto estructural definida en el Plan de Aseguramiento de Calidad es el <strong>Índice de Modificación del Núcleo (`M-09`)</strong>, cuya fórmula evalúa la proporción de módulos existentes del paquete puro `core_domain` que sufrieron modificaciones destructivas o rupturas de contrato:
+  </p>
+  <p class="no-indent" style="text-align: center; font-weight: bold;">
+    M-09 = (Módulos existentes en core_domain modificados destructivamente) / (Total de módulos en core_domain) = 0 / 4 = 0.00
+  </p>
+  <p>
+    En ambos incrementos evolutivos el resultado medido fue **`M-09 = 0.00`** (cumpliendo holgadamente el umbral exigido $\le 0.20$). Los cuatro módulos fundacionales del dominio (`unit_normalizer.py`, `validity_policy.py`, `anomaly_detector.py` y `neutral_comparator.py`) permanecieron intactos en sus firmas y contratos, mientras que la nueva lógica de negocio del historial de 90 días se incorporó por extensión limpia en el nuevo módulo puro `core_domain/price_history.py`, confirmando el cumplimiento del Principio Abierto/Cerrado (OCP).
+  </p>
+
+  <h2 class="apa-level-2">2.2 Contraste entre el esfuerzo estimado y el esfuerzo real (Cortes 2 y 3)</h2>
+  <p>
+    En cumplimiento del criterio de anticipación y trazabilidad en Git, el análisis de impacto y la estimación de esfuerzo se registraron en el repositorio antes de iniciar los commits de implementación (evidenciado en el commit `1b1cb51` previo a los commits de código `392ecf7` y `b7e05b5`). En la Tabla 2 se presenta el contraste consolidado entre el esfuerzo estimado y el esfuerzo real medido al cierre, junto con la explicación técnica de cada desviación.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 2</p>
+    <p class="apa-table-title">Contraste entre el esfuerzo estimado y el esfuerzo real en la evolución arquitectónica (EC-05, EC-08 y EC-12)</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Incremento / Componente modificado o creado</th>
+          <th style="width: 14%;">Esfuerzo estimado (h)</th>
+          <th style="width: 14%;">Esfuerzo real (h)</th>
+          <th style="width: 13%;">Desviación</th>
+          <th style="width: 34%;">Justificación técnica de la variación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Módulo Comercial (EC-05):</strong> Perfiles, precios oficiales y promociones neutras (<code>promotions/</code> y <code>NeutralComparator</code>).</td>
+          <td>14.0 h</td>
+          <td>13.5 h</td>
+          <td>-0.5 h (-3.6 %)</td>
+          <td>El aislamiento previo del comparador neutral permitió inyectar la bandera <code>is_promotional_content</code> sin alterar el algoritmo de ordenamiento por unidad base.</td>
+        </tr>
+        <tr>
+          <td><strong>Ampliación A2 (EC-08):</strong> Motor puro <code>core_domain/price_history.py</code>, cálculo de tendencia 90 días y pruebas TDD.</td>
+          <td>4.5 h</td>
+          <td>3.5 h</td>
+          <td>-1.0 h (-22.2 %)</td>
+          <td>Ahorro de 1.0 h porque las reglas de estados de confiabilidad (<code>VERIFIED</code>, <code>LOW_CONFIDENCE</code>, <code>ANOMALOUS</code>) ya estaban desacopladas del ORM de Django.</td>
+        </tr>
+        <tr>
+          <td><strong>Ampliación A2 (API y Caché):</strong> Endpoint <code>/price-history/</code>, filtro multi-tienda, Redis y documentación OpenAPI.</td>
+          <td>4.0 h</td>
+          <td>3.5 h</td>
+          <td>-0.5 h (-12.5 %)</td>
+          <td>Ahorro de 0.5 h al reutilizar directamente el helper existente <code>get_product_comparison_cache_version_key</code> y la tabla <em>Append-Only</em> <code>PriceReport</code> sin migraciones.</td>
+        </tr>
+        <tr>
+          <td><strong>Ampliación B2 (EC-12 — Pipeline):</strong> Workflow <code>ci-cd-quality-gate.yml</code>, <code>quality_gate_runner.py</code> y Trivy.</td>
+          <td>5.5 h</td>
+          <td>6.0 h</td>
+          <td>+0.5 h (+9.1 %)</td>
+          <td>Inversión de +0.5 h para remediar en Linux el hallazgo estático <code>EXE001</code> en <code>manage.py</code> (Run #1) y reemplazar la GitHub Action despublicada de Trivy por el contenedor oficial <code>aquasec/trivy:latest</code> (Run #2).</td>
+        </tr>
+        <tr>
+          <td><strong>Ampliación B2 (Staging y Rollback):</strong> Aprovisionamiento automático, smoke test <code>k6</code> y <code>rollback_release.sh</code>.</td>
+          <td>4.0 h</td>
+          <td>4.0 h</td>
+          <td>0.0 h (0.0 %)</td>
+          <td>Ajuste de la dependencia <code>packaging&gt;=24.0</code> para transporte Redis en Python 3.14 (Run #3), logrando ejecución 100 % verde en el Run #4 dentro del tiempo estimado.</td>
+        </tr>
+        <tr>
+          <td><strong>TOTAL CONSOLIDADO</strong></td>
+          <td><strong>32.0 h</strong></td>
+          <td><strong>30.5 h</strong></td>
+          <td><strong>-1.5 h (-4.7 %)</strong></td>
+          <td><strong>Alta precisión de estimación; la arquitectura modular absorbió los cambios con ahorro neto de esfuerzo.</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Para las ampliaciones específicas del Anexo 1 del Corte 3 (`A2` + `B2`), el esfuerzo estimado fue de 18.0 horas frente a 17.0 horas reales (-5.6 % de desviación).</p>
+  </div>
+
+  <!-- SECCIÓN 3 -->
+  <h1 class="apa-level-1">3. Análisis Retrospectivo: Decisiones que el Equipo Cambiaría y Por Qué</h1>
+  <p>
+    La guía del proyecto establece como criterio transversal de valoración la capacidad crítica del equipo para identificar decisiones que en retrospectiva habrían podido formularse mejor. A partir de la experiencia empírica acumulada en los tres cortes, el equipo documenta tres decisiones que cambiaría si iniciara el proyecto hoy:
+  </p>
+  <ol>
+    <li>
+      <strong>Ejecución del análisis estático SAST dentro de un contenedor Linux local (Pre-commit) desde el Corte 1:</strong>
+      Durante el desarrollo local en equipos con sistema operativo Windows, el linter `Ruff` no activaba la verificación de bits de ejecución POSIX (`EXE001`) sobre archivos con cabecera <em>shebang</em> (`#!/usr/bin/env python`). Al activar el Quality Gate sobre contenedores Ubuntu en GitHub Actions (`Run #1`), el pipeline bloqueó correctamente la promoción debido a `manage.py:1:1`. Si bien este evento proporcionó una evidencia invaluable de que el Quality Gate bloquea código no conforme, en retrospectiva habríamos ejecutado el verificador dentro de un contenedor Docker Linux en pre-commit desde el primer corte para garantizar paridad absoluta Windows/Linux antes del <em>push</em>.
+    </li>
+    <li>
+      <strong>Fijación explícita de sub-dependencias transitivas mediante archivo de bloqueo estricto en Dockerfile desde el Corte 2:</strong>
+      Durante el despliegue automatizado del entorno de Staging en GitHub Actions (`Run #3`) bajo Python 3.14, el transporte de Redis en Celery/Kombu requirió explícitamente el paquete `packaging>=24.0`, el cual estaba presente en el entorno virtual local pero no declarado como dependencia directa en `pyproject.toml`. Fue corregido en el commit `4877978`. En retrospectiva, habríamos exportado y fijado el árbol completo de dependencias transitivas desde la primera versión del `Dockerfile`.
+    </li>
+    <li>
+      <strong>Separación temprana de contratos de lectura histórica y comparación puntual en la capa de aplicación:</strong>
+      Aunque la tabla `PriceReport` fue diseñada acertadamente como un registro de solo inserción (<em>Append-Only</em>) desde el Corte 1 —lo que nos ahorró migraciones en el Corte 3—, en el Corte 2 acoplamos inicialmente algunos serializadores de presentación a la vista de comparación actual. Desacoplar desde el inicio los DTOs (<em>Data Transfer Objects</em>) de lectura puntual frente a los DTOs de series temporales habría simplificado aún más la capa de vistas en `pricing/views.py`.
+    </li>
+  </ol>
+
+  <!-- SECCIÓN 4 -->
+  <h1 class="apa-level-1">4. Documento de Arquitectura Final Actualizado (Modelo C4 Versión 3.0)</h1>
+
+  <h2 class="apa-level-2">4.1 Nivel 1 (Contexto) y Nivel 2 (Contenedores en Producción y CI/CD)</h2>
+  <p>
+    La versión final 3.0 de la arquitectura de <em>Pricecol (Nuvora)</em> mantiene el estilo de <strong>Monolito Modular con Núcleo de Dominio Puro (`core_domain`) y separación asimétrica de lecturas mediante caché versionada (CQRS ligero)</strong>, integrando ahora el módulo comercial, el motor de historial y tendencia de 90 días (`A2`) y la infraestructura de entrega continua (`B2`).
+  </p>
+  <p>
+    En el <strong>Nivel 1 (Contexto del Sistema)</strong> interactúan cuatro actores humanos —Consumidor, Reportante ciudadano, Comercio local (tienda de barrio, minimercado o supermercado) y Moderador administrativo— y una fuente externa institucional de datos abiertos —el Sistema de Información de Precios del Sector Agropecuario (SIPSA-DANE)— utilizada para el aprovisionamiento inicial en frío (`ADR-07`).
+  </p>
+  <p>
+    En el <strong>Nivel 2 (Diagrama de Contenedores)</strong>, el sistema desplegado mediante `docker-compose.prod.yml` y gobernado por el pipeline `.github/workflows/ci-cd-quality-gate.yml` se compone de seis contenedores y unidades de ejecución coordinadas:
+  </p>
+  <ul>
+    <li><strong>Proxy Inverso y Terminación TLS (Nginx / Cloudflare):</strong> Gestiona HTTPS, compresión, cabeceras de seguridad y validación de condicionales `ETag` / `If-None-Match` (`HTTP 304 Not Modified`).</li>
+    <li><strong>Aplicación Principal API REST (`nuvora-backend` — Django 6 + DRF + Gunicorn):</strong> Expone los contratos OpenAPI 3.0 bajo `/api/v1/`, aplica autenticación JWT, control de tasas (<em>throttling</em>), sanitización forense EXIF/GPS en memoria RAM y coordina los casos de uso.</li>
+    <li><strong>Base de Datos Relacional (`PostgreSQL 16`):</strong> Almacena con integridad transaccional ACID el catálogo normalizado, el directorio geográfico de establecimientos de Armenia/Quindío, las promociones comerciales y la tabla histórica de solo inserción (`PriceReport`) con índice compuesto B-Tree `(presentation_id, establishment_id, -reported_at)`.</li>
+    <li><strong>Caché Distribuida y Broker de Mensajes (`Redis 7`):</strong> Almacena las proyecciones de comparación y las series históricas de 90 días vinculadas a la clave atómica de versión del producto (`product:v:{id}`), garantizando lecturas en &lt; 15 ms e invalidación en &lt; 5 ms.</li>
+    <li><strong>Trabajador Asíncrono (`Celery Worker` + `Celery Beat`):</strong> Ejecuta fuera del hilo HTTP del usuario el precalentamiento de caché (`prewarm_product_comparison_cache_task`), la recarga periódica de vigencia (`evaluate_catalog_price_validity_task`) y el registro de auditoría (`record_audit_event_task`).</li>
+    <li><strong>Pipeline Automatizado CI/CD (GitHub Actions + Trivy + k6):</strong> Ejecuta los cuatro stages de aseguramiento: Quality Gate (`quality_gate_runner.py`), construcción y escaneo de vulnerabilidades del contenedor con Aqua Trivy, entorno efímero de Staging con prueba de humo en k6 y promoción manual a producción asistida por `rollback_release.sh`.</li>
+  </ul>
+
+  <h2 class="apa-level-2">4.2 Nivel 3 (Componentes del Monolito Modular y Paquete Puro core_domain)</h2>
+  <p>
+    En el <strong>Nivel 3 (Componentes internos del contenedor `nuvora-backend`)</strong>, la arquitectura impone una regla de dependencia unidireccional estricta: los adaptadores web de Django (`catalog`, `establishments`, `pricing`, `promotions`, `accounts`) dependen del paquete puro `core_domain`, pero `core_domain` no importa absolutamente ningún módulo de Django, DRF, Celery ni SQL. El paquete `core_domain` queda conformado en su versión final por cinco motores deterministas verificados con TDD (`96.32 %` de cobertura):
+  </p>
+  <ol>
+    <li><code>core_domain/unit_normalizer.py</code> (<code>UnitNormalizer</code>): Conversión exacta de masa, volumen y unidades discretas a precio por unidad base (`$/g`, `$/ml`, `$/u`).</li>
+    <li><code>core_domain/validity_policy.py</code> (<code>ValidityPolicy</code>): Ventanas de vigencia diferenciadas por categoría (2, 7 y 14 días) y cálculo de decaimiento exponencial de frescura.</li>
+    <li><code>core_domain/anomaly_detector.py</code> (<code>AnomalyDetector</code>): Motor antifraude de cuatro capas (cerca estadística MAD/IQR del 35 %, reputación Bayesiana del reportante, bono por evidencia fotográfica y bloqueo de ráfagas de spam).</li>
+    <li><code>core_domain/neutral_comparator.py</code> (<code>NeutralComparator</code>): Ranking neutral ordenado exclusivamente por precio por unidad base y separación estricta de promociones comerciales (`is_promotional_content: true`).</li>
+    <li><code>core_domain/price_history.py</code> (<code>PriceHistoryEngine</code> — Incorporado en Corte 3, Opción A2): Agregación diaria de series históricas de hasta 90 días, cálculo de métricas de tendencia (`variation_pct`, `trend_direction`), soporte multi-establecimiento y exclusión del 100 % de registros `ANOMALOUS`.</li>
+  </ol>
+
+  <!-- SECCIÓN 5 -->
+  <h1 class="apa-level-1">5. Registro Completo y Consolidado de Decisiones Arquitectónicas (ADR-01 a ADR-14)</h1>
+  <p>
+    En la Tabla 3 se presenta el registro oficial completo de las catorce decisiones arquitectónicas (ADRs) que gobiernan la plataforma <em>Pricecol (Nuvora)</em> desde su concepción en el Corte 1 hasta las ampliaciones del Corte 3, incluyendo el contexto, las alternativas descartadas, la decisión adoptada y sus consecuencias verificadas.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 3</p>
+    <p class="apa-table-title">Registro consolidado de decisiones arquitectónicas del proyecto (ADR-01 a ADR-14)</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 12%;">Código ADR</th>
+          <th style="width: 22%;">Título y Escenario vinculado</th>
+          <th style="width: 24%;">Alternativas descartadas</th>
+          <th style="width: 42%;">Decisión adoptada y consecuencias medidas</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>ADR-01</strong><br>(Aceptado)</td>
+          <td>Estilo Monolito Modular con Núcleo de Dominio Puro (<code>EC-04</code>, <code>EC-05</code>)</td>
+          <td>Microservicios distribuidos; Monolito acoplado al ORM (Fat Models).</td>
+          <td><strong>Decisión:</strong> Monolito Modular en Django 6 con paquete puro <code>core_domain</code> libre de dependencias de infraestructura.<br><strong>Consecuencia:</strong> Consumo de RAM &lt; 450 MB en VM de 1 GB, ejecución de 55 pruebas TDD en &lt; 2 s y modificabilidad <code>M-09 = 0.00</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-02</strong><br>(Aceptado)</td>
+          <td>Persistencia Relacional PostgreSQL y CQRS ligero con Caché Versionada (<code>EC-02</code>, <code>EC-04</code>)</td>
+          <td>Base documental NoSQL (MongoDB); Invalidación de caché por barrido de patrones (<code>KEYS *</code>).</td>
+          <td><strong>Decisión:</strong> PostgreSQL 16 como fuente de verdad ACID y Redis 7 para lecturas mediante clave atómica de versión por producto.<br><strong>Consecuencia:</strong> Consultas de comparación en &lt; 15 ms e invalidación instantánea en &lt; 5 ms al reportar un precio.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-03</strong><br>(Aceptado)</td>
+          <td>Coexistencia de precio oficial del comercio y consenso ciudadano (Pregunta 1, <code>EC-03</code>)</td>
+          <td>Sobrescribir el precio ciudadano con el oficial; Promediar ambos en un solo número opaco.</td>
+          <td><strong>Decisión:</strong> Mostrar en paralelo ambos carriles (<code>official_price</code> y <code>community_consensus_price</code>) con su respectiva marca temporal y nivel de confianza.<br><strong>Consecuencia:</strong> Transparencia total frente al consumidor y equidad para el comercio local.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-04</strong><br>(Aceptado)</td>
+          <td>Política de vigencia dinámica por categoría y decaimiento exponencial (Pregunta 2, <code>EC-02</code>)</td>
+          <td>Vigencia fija única (ej. 7 días para todo el catálogo); Borrado físico de precios vencidos.</td>
+          <td><strong>Decisión:</strong> Ventanas diferenciadas en <code>ValidityPolicy</code> (2 días perecederos, 7 días abarrotes, 14 días aseo) con transición a estado <code>EXPIRED</code> o <code>SUPERSEDED</code> sin borrado físico.<br><strong>Consecuencia:</strong> Preserva la serie histórica para el Corte 3 y evita mostrar precios obsoletos como vigentes.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-05</strong><br>(Aceptado)</td>
+          <td>Motor antifraude determinista de cuatro capas (Pregunta 3, <code>EC-03</code>)</td>
+          <td>Moderación 100 % manual previa; Modelo pesado de Machine Learning en tiempo de inferencia.</td>
+          <td><strong>Decisión:</strong> Evaluación síncrona en <code>AnomalyDetector</code>: 1) Cerca MAD/IQR del 35 %, 2) Reputación Bayesiana del usuario, 3) Bono por evidencia fotográfica y 4) Bloqueo de ráfagas.<br><strong>Consecuencia:</strong> Tasa de detección del 100 % en suite de anomalías en &lt; 3 ms sin agotar la RAM.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-06</strong><br>(Aceptado)</td>
+          <td>Catálogo canónico, sinónimos regionales y normalización por unidad base (Pregunta 4, <code>M-01</code>)</td>
+          <td>Texto libre ingresado por cada usuario sin catálogo maestro.</td>
+          <td><strong>Decisión:</strong> Entidad canónica Product + ProductPresentation con diccionario de sinónimos regionales y cálculo obligatorio de <code>unit_base_price</code> (<code>$/g</code>, <code>$/ml</code>) en <code>UnitNormalizer</code>.<br><strong>Consecuencia:</strong> Exactitud del 100 % al comparar presentaciones distintas (ej. 450 g vs. 500 g).</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-07</strong><br>(Aceptado)</td>
+          <td>Aprovisionamiento inicial en frío mediante datos abiertos SIPSA-DANE (Pregunta 5)</td>
+          <td>Lanzar la plataforma vacía esperando aportes; Web scraping no autorizado de sitios privados.</td>
+          <td><strong>Decisión:</strong> Comando reproducible <code>seed_quindio</code> basado en boletines públicos del SIPSA-DANE para Armenia y mercado simulado.<br><strong>Consecuencia:</strong> Cumplimiento legal de propiedad intelectual (Ley 23 de 1982) y línea base estadística lista desde el día 1.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-08</strong><br>(Aceptado)</td>
+          <td>Flujo ultraligero de reporte y publicación para tiendas de barrio sin POS (Pregunta 6, <code>EC-01</code>)</td>
+          <td>Exigir integración vía API/ERP o carga de archivos XML complejos a los comercios.</td>
+          <td><strong>Decisión:</strong> Formulario web móvil de 3 pasos con autocompletado y soporte de cabeceras condicionales <code>ETag 304</code> para ahorrar datos móviles.<br><strong>Consecuencia:</strong> Tiempo de registro medido con usuarios de 11.4 segundos (&le; 15 s de <code>EC-01</code>).</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-09</strong><br>(Aceptado)</td>
+          <td>Ordenamiento neutral incorruptible y aislamiento promocional (Pregunta 7, <code>EC-06</code>)</td>
+          <td>Permitir resultados patrocinados en las primeras posiciones del ranking de precios.</td>
+          <td><strong>Decisión:</strong> <code>NeutralComparator</code> ordena exclusivamente por precio por unidad base; toda promoción incluye <code>is_promotional_content: true</code> y se calcula sin alterar el ranking orgánico.<br><strong>Consecuencia:</strong> Cumplimiento del 100 % de neutralidad (<code>EC-06</code>) y del Estatuto del Consumidor (Ley 1480).</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-10</strong><br>(Aceptado)</td>
+          <td>Procesamiento híbrido síncrono/asíncrono con Celery y Redis (Pregunta 8, <code>EC-02</code>, <code>EC-04</code>)</td>
+          <td>Ejecutar precalentamiento de caché y auditoría dentro del hilo de la petición HTTP; Usar Kafka/RabbitMQ pesados.</td>
+          <td><strong>Decisión:</strong> Validación antifraude e incremento de versión en Redis son síncronos (&lt; 25 ms); precalentamiento de caché, barrido de vigencia y auditoría se delegan a Celery.<br><strong>Consecuencia:</strong> Escrituras rápidas y lecturas posteriores precalentadas en caché.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-11</strong><br>(Aceptado)</td>
+          <td>Justificación formal de patrones descartados (Economía arquitectónica)</td>
+          <td>Adoptar GraphQL, gRPC, WebSockets, Saga y Event Sourcing completo sin necesidad.</td>
+          <td><strong>Decisión:</strong> Descartar formalmente patrones cuya sobrecarga operativa o de memoria supere su beneficio frente a los escenarios de calidad.<br><strong>Consecuencia:</strong> Arquitectura limpia, comprensible por todo el equipo y sostenible en infraestructura universitaria.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-12</strong><br>(Aceptado)</td>
+          <td>Sanitización forense EXIF/GPS en RAM y validación binaria de multimedia (Ley 1581, <code>EC-03</code>)</td>
+          <td>Almacenar la imagen original subida por el teléfono del ciudadano directamente en disco.</td>
+          <td><strong>Decisión:</strong> Validar firma binaria (<em>magic bytes</em> JPEG/PNG/WebP) y re-codificar la imagen en memoria RAM eliminando el 100 % de metadatos EXIF y coordenadas GPS antes de persistir.<br><strong>Consecuencia:</strong> Privacidad por diseño garantizada bajo la Ley 1581 de 2012 y protección contra archivos maliciosos.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-13</strong><br>(Aceptado - Corte 3)</td>
+          <td>Almacenamiento de solo inserción (<em>Append-Only</em>) para historial y tendencia de 90 días (Opción A2, <code>EC-08</code>)</td>
+          <td>Bitácora de eventos con Event Sourcing completo; Tabla separada de instantáneas por cron nocturno.</td>
+          <td><strong>Decisión:</strong> Reutilizar el modelo <em>Append-Only</em> de <code>PriceReport</code> con índice compuesto <code>(presentation_id, establishment_id, -reported_at)</code> y motor puro <code>PriceHistoryEngine</code> que excluye el 100 % de reportes <code>ANOMALOUS</code>.<br><strong>Consecuencia:</strong> Series de 90 días multi-establecimiento en &lt; 15 ms y modificabilidad <code>M-09 = 0.00</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>ADR-14</strong><br>(Aceptado - Corte 3)</td>
+          <td>Pipeline de Entrega Continua con Quality Gate, Trivy, Staging con k6 y Rollback (Opción B2, <code>EC-12</code>)</td>
+          <td>Despliegue manual por SSH; Pipeline básico que solo ejecuta pruebas sin desplegar Staging ni escanear imagen.</td>
+          <td><strong>Decisión:</strong> Flujo de 4 etapas en GitHub Actions con <code>quality_gate_runner.py</code> (cobertura &ge; 95 % en <code>core_domain</code>, Bandit/Ruff = 0), Aqua Trivy, Staging efímero con k6 y <code>rollback_release.sh</code>.<br><strong>Consecuencia:</strong> Bloqueo empírico de defectos demostrado (Run #1) y reversión segura en &lt; 90 segundos.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Los archivos individuales de cada ADR se encuentran disponibles en el directorio <code>docs/architecture/adrs/</code> del repositorio oficial.</p>
+  </div>
+
+  <!-- REFERENCIAS -->
+  <h1 class="apa-level-1">Referencias</h1>
+
+  <p class="apa-reference">
+    Bass, L., Clements, P., &amp; Kazman, R. (2021). <em>Software architecture in practice</em> (4th ed.). Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    Brown, S. (2020). <em>The C4 model for visualising software architecture</em>. Leanpub. https://c4model.com
+  </p>
+  <p class="apa-reference">
+    Cervantes, H., &amp; Kazman, R. (2016). <em>Designing software architectures: A practical approach</em>. Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2008). <em>Software engineering — Software product Quality Requirements and Evaluation (SQuaRE) — Data quality model</em> (ISO/IEC Standard No. 25012:2008).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2023). <em>Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model</em> (ISO/IEC Standard No. 25010:2023).
+  </p>
+  <p class="apa-reference">
+    Kleppmann, M. (2017). <em>Designing data-intensive applications</em>. O'Reilly Media.
+  </p>
+  <p class="apa-reference">
+    Nygard, M. (2011). Documenting architecture decisions. <em>Cognitect Blog</em>. https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions
+  </p>
+  <p class="apa-reference">
+    Richards, M., &amp; Ford, N. (2020). <em>Fundamentals of software architecture: An engineering approach</em>. O'Reilly Media.
+  </p>
+
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guion de Sustentación Final y Presentación en Stand (5 Expositores) — Pricecol (Nuvora)</title>
+<style>
+  @page {
+    size: letter;
+    margin: 2.54cm 2.54cm 2.54cm 2.54cm;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000000;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Portada Institucional Exacta */
+  .cover-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    min-height: 22.5cm;
+    page-break-after: always;
+    padding-top: 0.5cm;
+    padding-bottom: 0.5cm;
+  }
+  .cover-title {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-top: 0.5cm;
+    margin-bottom: 1.5cm;
+    line-height: 1.5;
+  }
+  .cover-page p {
+    text-align: center;
+    text-indent: 0;
+  }
+  .cover-authors p,
+  .cover-institution p,
+  .cover-teacher p,
+  .cover-footer p {
+    margin: 0.3cm 0;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  .cover-institution .uni-name {
+    margin-bottom: 1.0cm;
+  }
+
+  /* Tabla de Contenido APA 7 */
+  .toc-page {
+    page-break-after: always;
+  }
+  .toc-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-bottom: 1cm;
+  }
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 0.2cm;
+    line-height: 1.5;
+  }
+  .toc-item.level-1 {
+    font-weight: bold;
+    margin-top: 0.3cm;
+  }
+  .toc-item.level-2 {
+    padding-left: 1.0cm;
+    font-weight: normal;
+  }
+  .toc-text {
+    white-space: nowrap;
+  }
+  .toc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #000000;
+    margin: 0 6px;
+  }
+  .toc-page-num {
+    white-space: nowrap;
+  }
+
+  /* Jerarquía de Títulos APA 7ma Edición (Todo en 12pt e interlineado 1.5) */
+  h1.apa-level-1 {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.7cm;
+    margin-bottom: 0.4cm;
+    page-break-after: avoid;
+  }
+  h2.apa-level-2 {
+    text-align: left;
+    font-weight: bold;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.55cm;
+    margin-bottom: 0.3cm;
+    page-break-after: avoid;
+  }
+  h3.apa-level-3 {
+    text-align: left;
+    font-weight: bold;
+    font-style: italic;
+    font-size: 12pt;
+    line-height: 1.5;
+    margin-top: 0.4cm;
+    margin-bottom: 0.2cm;
+    page-break-after: avoid;
+  }
+
+  /* Párrafos y Citas en Bloque APA */
+  p {
+    margin-top: 0;
+    margin-bottom: 0.35cm;
+    text-align: left;
+    text-indent: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+  blockquote.apa-dialogue {
+    margin-top: 0.15cm;
+    margin-bottom: 0.4cm;
+    margin-left: 1.27cm;
+    margin-right: 0;
+    padding-left: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    text-align: left;
+  }
+  blockquote.apa-dialogue p {
+    text-indent: 0;
+    margin-bottom: 0.28cm;
+  }
+
+  ul, ol {
+    margin-top: 0.2cm;
+    margin-bottom: 0.4cm;
+    padding-left: 1.27cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  li {
+    margin-bottom: 0.18cm;
+    line-height: 1.5;
+  }
+
+  /* Tablas estilo APA 7ma Edición */
+  .apa-table-container {
+    margin-top: 0.4cm;
+    margin-bottom: 0.5cm;
+  }
+  .apa-table-number {
+    font-weight: bold;
+    font-style: normal;
+    margin-bottom: 0.05cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  .apa-table-title {
+    font-style: italic;
+    margin-bottom: 0.22cm;
+    text-indent: 0;
+    font-size: 12pt;
+    line-height: 1.5;
+    page-break-after: avoid;
+  }
+  table.apa-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1.5px solid #000000;
+    border-bottom: 1.5px solid #000000;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  table.apa-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table.apa-table thead th {
+    border-bottom: 1px solid #000000;
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: bold;
+    vertical-align: bottom;
+  }
+  table.apa-table tbody td {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+  .apa-table-note {
+    font-size: 11pt;
+    margin-top: 0.18cm;
+    text-indent: 0;
+    line-height: 1.5;
+  }
+
+  .apa-reference {
+    padding-left: 1.27cm;
+    text-indent: -1.27cm;
+    margin-bottom: 0.35cm;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+  <!-- PORTADA INSTITUCIONAL -->
+  <div class="cover-page">
+    <div class="cover-title">
+      Guion de Presentación en Stand y Sustentación Final por Indicadores de Rúbrica Institucional (Cinco Expositores): Plataforma Colaborativa Pricecol (Nuvora)
+    </div>
+
+    <div class="cover-authors">
+      <p>Presentado por:</p>
+      <p>Alzate Berrio, Samuel</p>
+      <p>Arias Lemus, Isabella</p>
+      <p>Cuervo Ríos, Nicolás</p>
+      <p>Giraldo Espinosa, Maria Victoria</p>
+      <p>Hoyos Escobar, Valentina</p>
+    </div>
+
+    <div class="cover-institution">
+      <p class="uni-name">C.U.E. Alexander von Humboldt</p>
+      <p>Facultad de ingenierías y ciencias básicas</p>
+      <p>Programa: Ingeniería de software</p>
+      <p>Seminario Nuclear IV: Arquitectura de Software II y Modelos de Calidad</p>
+    </div>
+
+    <div class="cover-teacher">
+      <p>Docente:</p>
+      <p>Ruben Dario Diaz Bautista</p>
+    </div>
+
+    <div class="cover-footer">
+      <p>Armenia/Quindío</p>
+      <p>2026</p>
+    </div>
+  </div>
+
+  <!-- TABLA DE CONTENIDO -->
+  <div class="toc-page">
+    <div class="toc-title">Tabla de Contenido</div>
+    <ul class="toc-list">
+      <li class="toc-item level-1">
+        <span class="toc-text">1. Alineación con la Rúbrica Institucional y Diferencial Competitivo</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.1 Propósito comunicativo y participación equitativa de los cinco integrantes</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.2 Nuestro punto fuerte como empresa y aplicación: Calidad y Seguridad de los Datos</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">3</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">1.3 Distribución equitativa de indicadores de la rúbrica entre los cinco expositores</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">4</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">2. Guion Estructurado para Cinco Expositores</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.1 Expositor 1 (Isabella Arias): Presentación, problemática y diferencial (25 %)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">6</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.2 Expositor 2 (Samuel Alzate): Arquitectura, memoria rápida y transparencia (12.5 %)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">7</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.3 Expositor 3 (María Victoria Giraldo): Modelos de calidad y seguridad del dato (12.5 %)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">8</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.4 Expositor 4 (Nicolás Cuervo): Demostración en vivo y guardián automático (25 %)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">9</span>
+      </li>
+      <li class="toc-item level-2">
+        <span class="toc-text">2.5 Expositor 5 (Valentina Hoyos): Evolución, impacto y conclusiones (25 %)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">10</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">3. Intervención Breve de Sesenta Segundos para Visitantes del Stand</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">12</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">4. Matriz de Respuesta para la Ronda de Preguntas del Docente (5 Integrantes)</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">13</span>
+      </li>
+      <li class="toc-item level-1">
+        <span class="toc-text">Referencias</span>
+        <span class="toc-dots"></span>
+        <span class="toc-page-num">14</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <h1 class="apa-level-1">1. Alineación con la Rúbrica Institucional y Diferencial Competitivo</h1>
+
+  <h2 class="apa-level-2">1.1 Propósito comunicativo y participación equitativa de los cinco integrantes</h2>
+  <p>
+    El presente documento estructura el guion oficial de sustentación y atención en stand para el proyecto integrador <em>Pricecol (Nuvora)</em>, desarrollado en el marco del Seminario Nuclear IV de las asignaturas Arquitectura de Software II y Modelos de Calidad. El discurso ha sido redactado empleando un lenguaje natural, claro y cercano a la experiencia cotidiana de los habitantes de Armenia y el departamento del Quindío, de modo que cualquier visitante de la muestra académica comprenda de inmediato el problema social y económico que resuelve la plataforma.
+  </p>
+  <p>
+    Simultáneamente, la presentación distribuye el tiempo y el dominio temático de manera equitativa entre los cinco integrantes del equipo (Isabella Arias, Samuel Alzate, María Victoria Giraldo, Nicolás Cuervo y Valentina Hoyos, con intervenciones de entre 2.2 y 2.7 minutos cada uno), cubriendo el 100 % de los cuatro indicadores establecidos en el formato institucional de rúbrica de evaluación (25 % por cada criterio) y asignando a cada estudiante la defensa del componente técnico que lideró a lo largo del semestre.
+  </p>
+
+  <h2 class="apa-level-2">1.2 Nuestro punto fuerte como empresa y aplicación: Calidad y Seguridad de los Datos</h2>
+  <p>
+    Atendiendo la recomendación formulada por el docente evaluador, el eje transversal de la sustentación resalta la <strong>calidad y la seguridad de los datos como el punto fuerte y principal ventaja competitiva de Pricecol (Nuvora)</strong> como empresa y como aplicación tecnológica. En el ecosistema digital actual, cualquier desarrollo básico puede almacenar y mostrar un listado de precios; sin embargo, en una plataforma colaborativa donde convergen ciudadanos reportantes y comercios con intereses propios, la aplicación pierde toda credibilidad si el consumidor sospecha que un precio es falso, está desactualizado, fue manipulado mediante pago publicitario o pone en riesgo su privacidad personal.
+  </p>
+  <p>
+    Por consiguiente, la identidad empresarial de <em>Pricecol (Nuvora)</em> se fundamenta en una promesa de valor verificable: la plataforma no comercializa posiciones en el listado ni actúa como intermediaria de ventas, sino que entrega inteligencia de precios verificada, neutral y protegida. Este punto fuerte se materializa en cuatro pilares de ingeniería que se explican a lo largo de las cinco intervenciones:
+  </p>
+  <ol>
+    <li>
+      <strong>Veracidad y blindaje antifraude determinista (ISO/IEC 25012):</strong> Un motor de validación de cuatro capas que normaliza unidades a gramo o mililitro, calcula vigencia diferenciada por categoría y bloquea precios falsos, errores de digitación o ataques coordinados de competidores antes de que contaminen la comparación o las gráficas históricas.
+    </li>
+    <li>
+      <strong>Seguridad informática y privacidad por diseño (Ley 1581 de 2012 y OWASP):</strong> Un proceso de limpieza forense en memoria RAM que elimina automáticamente las coordenadas GPS y los metadatos EXIF del teléfono en cada fotografía de evidencia subida por los ciudadanos, complementado con inspección de firmas binarias reales (<em>magic bytes</em>) para rechazar archivos maliciosos.
+    </li>
+    <li>
+      <strong>Neutralidad algorítmica incorruptible (Ley 1480 de 2011):</strong> Una separación estructural entre el ordenamiento matemático por precio por unidad base y el módulo de promociones comerciales, garantizando en el 100 % de los casos que ningún comercio pueda alterar su posición orgánica.
+    </li>
+    <li>
+      <strong>Aseguramiento automatizado en el ciclo de entrega (DevSecOps):</strong> Una barrera continua respaldada por 55 pruebas automatizadas TDD (96.32 % de cobertura en el núcleo del dominio), análisis estático de vulnerabilidades SAST con Bandit y Ruff, detección de secretos expuestos y auditoría de contenedores con Aqua Trivy.
+    </li>
+  </ol>
+
+  <h2 class="apa-level-2">1.3 Distribución equitativa de indicadores de la rúbrica entre los cinco expositores</h2>
+  <p>
+    En la Tabla 1 se presenta la distribución equitativa entre los cinco expositores, indicando cómo el segundo indicador de la rúbrica institucional (Apropiación del conocimiento, 25 %) se divide armónicamente entre los fundamentos de Arquitectura de Software II (Expositor 2: Samuel Alzate, 12.5 %) y los fundamentos de Modelos de Calidad y Seguridad de Datos (Expositor 3: María Victoria Giraldo, 12.5 %).
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 1</p>
+    <p class="apa-table-title">Distribución equitativa de los indicadores de la rúbrica institucional entre los cinco integrantes del equipo</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 19%;">Expositor (Tiempo)</th>
+          <th style="width: 26%;">Indicador de la rúbrica cubierto</th>
+          <th style="width: 34%;">Síntesis en lenguaje natural (Énfasis en Calidad y Seguridad de Datos)</th>
+          <th style="width: 21%;">Apoyo visual en pantalla</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Expositor 1:<br>Isabella Arias<br>(~2.3 min)</td>
+          <td>Indicador 1 (25 %): Presentación e introducción (presentación del stand, problemática y diagnóstico situacional).</td>
+          <td>Bienvenida al stand, problemática del costo del mercado en Armenia y presentación de nuestro punto fuerte como empresa: la calidad y seguridad de los datos.</td>
+          <td>Interfaz principal de Pricecol con directorio de tiendas y sello de datos verificados.</td>
+        </tr>
+        <tr>
+          <td>Expositor 2:<br>Samuel Alzate<br>(~2.3 min)</td>
+          <td>Indicador 2 — Parte A (12.5 %): Apropiación del conocimiento en Arquitectura de Software (ADRs y velocidad).</td>
+          <td>Cómo diseñamos una arquitectura veloz y económica (Monolito Modular + memoria rápida versionada en Redis + datos iniciales SIPSA-DANE) para servir datos frescos en menos de 0.1 segundos.</td>
+          <td>Esquema Monolito Modular + Redis y vista de carriles separados (comercio vs. comunidad).</td>
+        </tr>
+        <tr>
+          <td>Expositor 3:<br>María Victoria Giraldo<br>(~2.5 min)</td>
+          <td>Indicador 2 — Parte B (12.5 %): Apropiación del conocimiento en Modelos de Calidad y Seguridad de Datos (ISO 25010 y 25012).</td>
+          <td>Las cuatro barreras de calidad y seguridad del dato: exactitud por gramo/mililitro, vigencia dinámica por categoría, escudo antifraude de 4 niveles y borrado forense de GPS/EXIF en fotos (Ley 1581).</td>
+          <td>Ficha de producto mostrando precio por unidad base (<code>$/g</code>), vigencia y sello antifraude.</td>
+        </tr>
+        <tr>
+          <td>Expositor 4:<br>Nicolás Cuervo<br>(~2.7 min)</td>
+          <td>Indicador 3 (25 %): Resultados logrados (demostración funcional en vivo, pruebas TDD y entrega continua CI/CD).</td>
+          <td>Demostración en vivo del comparador neutral, historial de 90 días blindado contra fraude (Opción A2) y guardián automático de seguridad y calidad en GitHub Actions (Opción B2).</td>
+          <td>Aplicación en ejecución, gráfica de tendencia de 90 días y pipeline de seguridad en verde.</td>
+        </tr>
+        <tr>
+          <td>Expositor 5:<br>Valentina Hoyos<br>(~2.3 min)</td>
+          <td>Indicador 4 (25 %): Capacidad de análisis (evaluación ATAM/ISO 25040, evolución, impacto y conclusiones).</td>
+          <td>Cómo aislar la calidad y seguridad del dato permitió evolucionar sin romper el núcleo (M-09 = 0.00), contraste 18 h vs. 17 h, autocrítica CMMI e impacto regional.</td>
+          <td>Tabla comparativa de esfuerzo estimado frente al real y métricas ISO/IEC 25040.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Elaboración propia a partir del Formato Institucional de Rúbrica de Evaluación Individual o por Equipo de Trabajo de la Facultad de Ingenierías y Ciencias Básicas.</p>
+  </div>
+
+  <!-- SECCIÓN 2 -->
+  <h1 class="apa-level-1">2. Guion Estructurado para Cinco Expositores</h1>
+
+  <h2 class="apa-level-2">2.1 Expositor 1 (Isabella Arias): Presentación del stand, problemática, diagnóstico situacional y diferencial empresarial (Indicador 1 — 25 %)</h2>
+  <p class="no-indent">
+    <strong>Tiempo estimado:</strong> 2 minutos y 20 segundos.<br>
+    <strong>Recurso en pantalla:</strong> Vista principal de la plataforma mostrando establecimientos comerciales de Armenia y productos básicos de la canasta familiar.
+  </p>
+
+  <h3 class="apa-level-3">Apertura y bienvenida al stand</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Buenas tardes y bienvenidos a nuestro stand. Nuestro equipo está conformado por Samuel Alzate, María Victoria Giraldo, Nicolás Cuervo, Valentina Hoyos y quien les habla, Isabella Arias, estudiantes de sexto semestre de Ingeniería de Software. Hoy queremos presentarles Pricecol (Nuvora), una plataforma tecnológica y colaborativa diseñada para ayudar a las familias de Armenia y del departamento del Quindío a cuidar su presupuesto al momento de hacer mercado».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Descripción de la problemática regional y diagnóstico situacional</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Para comprender por qué surge Pricecol, basta pensar en una situación cotidiana que vivimos en cualquier hogar quindiano cada quincena: salimos a comprar productos básicos como arroz, leche, aceite o huevos, y después de pagar descubrimos que a pocas cuadras, en una tienda de barrio o en otro supermercado, ese mismo artículo costaba un veinte o un treinta por ciento menos.
+    </p>
+    <p>
+      Al realizar nuestro diagnóstico situacional en Armenia identificamos que esta falta de información transparente afecta a dos actores fundamentales. En primer lugar, golpea el bolsillo de los hogares —especialmente de aquellos donde cualquier ahorro pesa en el presupuesto mensual—, quienes hoy compran sin datos comparables o pierden tiempo recorriendo varios establecimientos. En segundo lugar, deja en desventaja a las tiendas de barrio y minimercados locales: aunque muchas veces ofrecen mejores precios que las grandes cadenas, carecen de presupuesto publicitario o de canales digitales para que sus vecinos lo sepan».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Nuestro punto fuerte como empresa y aplicación: la calidad y seguridad de los datos</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Frente a esta realidad creamos Pricecol, una plataforma informativa abierta —similar a un sistema comunitario como Waze, pero aplicado a los precios de la canasta familiar— donde tanto los ciudadanos como los comercios locales registran y consultan precios reales. Y aquí quiero destacar desde el inicio cuál es nuestro verdadero punto fuerte como empresa y como aplicación: la calidad y la seguridad de los datos.
+    </p>
+    <p>
+      Sabemos que cualquier página web puede publicar una lista de precios; pero si una familia entra y encuentra precios falsos, vencidos o manipulados por publicidad, o si siente que al subir una foto están exponiendo su ubicación personal, la aplicación pierde toda su credibilidad en cuestión de días. Por eso, en Pricecol unimos Arquitectura de Software II y Modelos de Calidad para construir un blindaje completo que garantiza que cada dato que ve el ciudadano sea auténtico, neutral, vigente y seguro. A continuación, mi compañero Samuel les explicará cómo diseñamos la arquitectura para lograrlo».
+    </p>
+  </blockquote>
+
+  <h2 class="apa-level-2">2.2 Expositor 2 (Samuel Alzate): Apropiación del conocimiento en Arquitectura de Software — Eficiencia, memoria rápida y transparencia (Indicador 2, Parte A — 12.5 %)</h2>
+  <p class="no-indent">
+    <strong>Tiempo estimado:</strong> 2 minutos y 20 segundos.<br>
+    <strong>Recurso en pantalla:</strong> Esquema visual de la arquitectura Monolito Modular con Redis y vista de comparación mostrando los carriles diferenciados entre el precio oficial del comercio y el consenso ciudadano.
+  </p>
+
+  <h3 class="apa-level-3">Arquitectura pensada para la realidad local y bajo costo operativo</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Muchas gracias, Isabella. Para que esa promesa de calidad y seguridad funcione en la vida real sin requerir servidores costosos, tomamos decisiones arquitectónicas muy precisas que documentamos en catorce registros de decisión (ADRs). En lugar de dividir el sistema en decenas de microservicios que agotarían los recursos, construimos un Monolito Modular con un núcleo de reglas de negocio completamente independiente, capaz de operar con total estabilidad en un servidor en la nube de muy bajo costo con apenas un gigabyte de memoria RAM.
+    </p>
+    <p>
+      Además, resolvimos el problema de cómo arrancar la plataforma antes de tener miles de usuarios alimentando el catálogo inicial con referencias públicas del sistema SIPSA del DANE para la ciudad de Armenia, asegurando que desde el primer día el consumidor cuente con puntos de referencia confiables».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Velocidad instantánea con memoria versionada y coexistencia transparente</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «El segundo reto arquitectónico fue la velocidad y la actualidad del dato. En un comparador de precios, por cada persona que reporta un precio nuevo hay cerca de veinte personas consultando. Para que cientos de familias puedan comparar precios al mismo tiempo en un fin de semana de quincena sin congestionar la base de datos, incorporamos una capa de memoria ultrarrápida en Redis con control inteligente de versiones.
+    </p>
+    <p>
+      De esta manera, el sistema entrega cualquier comparación en menos de una décima de segundo; y apenas un tendero o un ciudadano reporta un cambio de precio, el número de versión del producto se actualiza en cinco milisegundos para que nadie tome decisiones con información obsoleta. Asimismo, diseñamos la arquitectura para que nunca exista conflicto entre el comercio y la comunidad: cuando una tienda publica su precio oficial y los ciudadanos reportan otro distinto, no borramos ninguno, sino que mostramos ambos en carriles separados para que haya transparencia total. Ahora mi compañera María Victoria les explicará cómo nuestro modelo de calidad blinda la veracidad y la seguridad de cada dato».
+    </p>
+  </blockquote>
+
+  <h2 class="apa-level-2">2.3 Expositor 3 (María Victoria Giraldo): Apropiación del conocimiento en Modelos de Calidad — Las cuatro barreras de calidad y seguridad del dato (Indicador 2, Parte B — 12.5 %)</h2>
+  <p class="no-indent">
+    <strong>Tiempo estimado:</strong> 2 minutos y 30 segundos.<br>
+    <strong>Recurso en pantalla:</strong> Ficha detallada de un producto donde se aprecia la conversión a precio por unidad base (gramo o mililitro), la etiqueta de vigencia por categoría y el sello de verificación antifraude y privacidad.
+  </p>
+
+  <h3 class="apa-level-3">Aplicación de los estándares ISO/IEC 25010 e ISO/IEC 25012 al núcleo del negocio</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Muchas gracias, Samuel. Como destacamos al inicio, nuestro mayor diferencial competitivo como empresa y aplicación es la calidad y la seguridad de los datos. Desde la asignatura Modelos de Calidad comprendimos que de nada sirve un software veloz si la información que entrega es engañosa. Por ello articulamos la norma ISO/IEC 25010:2023 para la calidad del producto con la norma internacional ISO/IEC 25012 para la calidad de los datos, programando cuatro barreras automáticas que todo reporte debe superar antes de llegar a los ojos del consumidor:
+    </p>
+    <p>
+      La primera barrera es la exactitud matemática por unidad de medida. En el comercio es habitual encontrar una bolsa de arroz de 450 gramos que aparenta ser más barata que otra de 500 gramos. Nuestro motor convierte automáticamente cualquier presentación —ya venga en libras, gramos, litros o centímetros cúbicos— a su unidad base estándar de precio por cada gramo o mililitro, revelando cuál opción representa un ahorro real.
+    </p>
+    <p>
+      La segunda barrera es la vigencia inteligente según la categoría del producto. Sabemos que el precio de una verdura o de unos huevos cambia mucho más rápido que el de un detergente. Por eso el sistema asigna ventanas de validez diferenciadas —dos días para alimentos perecederos, siete días para abarrotes y catorce días para productos de aseo— e informa al comprador qué tan reciente es cada registro».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Escudo antifraude de cuatro niveles y privacidad forense por diseño</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «La tercera barrera es nuestro escudo antifraude de cuatro niveles contra errores o sabotajes. Si alguien digita mal un número o si un competidor intenta perjudicar a la tienda vecina subiendo precios falsos, el sistema compara estadísticamente el reporte contra el comportamiento del mercado. Cuando detecta una desviación superior al treinta y cinco por ciento, evalúa la reputación histórica del usuario, verifica si adjuntó fotografía de respaldo y bloquea envíos repetitivos en ráfaga, aislando cualquier dato no confiable.
+    </p>
+    <p>
+      Y la cuarta barrera es la seguridad informática y la privacidad por diseño bajo la Ley 1581. Cuando un ciudadano toma una fotografía del precio en la estantería con su teléfono, ese archivo trae ocultas la coordenada GPS exacta donde se encuentra y el modelo de su dispositivo. Nuestro servidor verifica primero la firma binaria interna del archivo para impedir que alguien suba virus disfrazados de imágenes y, acto seguido, borra automáticamente en memoria RAM todos los datos GPS y metadatos EXIF antes de guardar la fotografía, protegiendo al cien por ciento la ubicación y seguridad de nuestros usuarios. A continuación, Nicolás les mostrará este sistema y nuestros controles automáticos operando en vivo».
+    </p>
+  </blockquote>
+
+  <h2 class="apa-level-2">2.4 Expositor 4 (Nicolás Cuervo): Resultados logrados, demostración en vivo y guardián automático de seguridad y calidad (Indicador 3 — 25 %)</h2>
+  <p class="no-indent">
+    <strong>Tiempo estimado:</strong> 2 minutos y 45 segundos.<br>
+    <strong>Recurso en pantalla:</strong> Demostración funcional en tiempo real del comparador, módulo de promociones, gráfica de historial de precios de 90 días y panel de ejecución de GitHub Actions con los controles de seguridad y calidad aprobados.
+  </p>
+
+  <h3 class="apa-level-3">Demostración en vivo del comparador neutral y del historial de noventa días (Ampliación A2)</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Gracias, María Victoria. Vamos a comprobar cómo ese punto fuerte en calidad y seguridad de los datos se ve reflejado directamente sobre el sistema en funcionamiento. Aquí tenemos activos nuestro servidor principal y el procesador de tareas conectado a la memoria rápida.
+    </p>
+    <p>
+      Al buscar un producto de la canasta familiar en Armenia, vemos cómo la lista de establecimientos se ordena única y exclusivamente del menor al mayor costo por gramo o mililitro. Y cuando observamos el módulo comercial —donde las tiendas publican promociones como dos por uno o descuentos porcentuales—, verificamos una regla ética y técnica innegociable bajo la Ley 1480: ninguna promoción puede pagar para comprar el primer puesto; todas se distinguen claramente con su etiqueta promocional sin alterar el ranking natural.
+    </p>
+    <p>
+      Además, para esta entrega final incorporamos el módulo de historial y tendencia de precios de los últimos noventa días, que ven en esta gráfica. Cuando un comprador quiere saber si una oferta es real o si el precio fue inflado el día anterior, nuestra base de datos —que funciona bajo una política de seguridad de solo inserción donde ningún precio histórico puede ser borrado ni modificado hacia atrás— dibuja la evolución diaria comparando varias tiendas al mismo tiempo, calcula el porcentaje de variación trimestral y expulsa en el cien por ciento de los casos los reportes marcados como fraudulentos por el motor antifraude para que nadie pueda distorsionar la gráfica».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Seguridad y calidad automatizada en el código: TDD, Bandit, Trivy y CI/CD (Ampliación B2)</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Finalmente, para garantizar que la seguridad de los datos esté respaldada por la seguridad de nuestro propio código, aplicamos dos controles de ingeniería en el desarrollo:
+    </p>
+    <p>
+      Primero, programamos todas las reglas de negocio mediante Desarrollo Guiado por Pruebas (TDD), completando cincuenta y cinco pruebas automatizadas que cubren el 96.32 % del núcleo del dominio, incluidas pruebas específicas de ciberseguridad y limpieza forense de imágenes.
+    </p>
+    <p>
+      Segundo, construimos este canal de Entrega Continua con controles de calidad y seguridad bloqueantes en GitHub Actions que ven en pantalla en color verde. Cada vez que subimos un cambio, un guardián automático ejecuta cuatro aduanas: verifica que no existan contraseñas ni llaves expuestas, audita la seguridad del código con Bandit y Ruff, corre las cincuenta y cinco pruebas TDD, escanea el contenedor contra vulnerabilidades críticas con Aqua Trivy y despliega desde cero un servidor de ensayo donde simula tráfico de compradores reales con k6. En nuestra primera ejecución de control demostramos cómo este filtro bloqueó automáticamente un archivo con permisos inadecuados antes de avanzar. Y si alguna vez se requiere revertir una versión en producción, nuestro script automatizado lo hace en menos de noventa segundos sin comprometer un solo dato. Le doy paso a Valentina para cerrar con el análisis de evolución y el impacto del proyecto».
+    </p>
+  </blockquote>
+
+  <h2 class="apa-level-2">2.5 Expositor 5 (Valentina Hoyos): Capacidad de análisis, evolución arquitectónica, impacto y conclusiones (Indicador 4 — 25 %)</h2>
+  <p class="no-indent">
+    <strong>Tiempo estimado:</strong> 2 minutos y 20 segundos.<br>
+    <strong>Recurso en pantalla:</strong> Cuadro sintético de evaluación arquitectónica e ISO/IEC 25040 (índice de modificación del núcleo igual a 0.00 y comparación entre las 18.0 horas estimadas y las 17.0 horas reales).
+  </p>
+
+  <h3 class="apa-level-3">Cómo nuestro enfoque en calidad y seguridad facilitó la evolución del sistema</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Muchas gracias, Nicolás. En ingeniería de software, la prueba definitiva para saber si una aplicación tiene cimientos sólidos es evaluar qué sucede cuando el proyecto crece y debemos incorporarle nuevas capacidades meses después.
+    </p>
+    <p>
+      Al evaluar nuestro sistema aplicando el estándar internacional ISO/IEC 25040 y el método de evaluación arquitectónica basada en escenarios (ATAM), comprobamos que haber concentrado la calidad y la seguridad de los datos en un núcleo independiente fue nuestra decisión estratégica más acertada. Al integrar en esta fase final el módulo comercial, el historial de noventa días y el canal automatizado de entrega continua, obtuvimos un índice de impacto destructivo de cero (0.00) sobre el núcleo original: no tuvimos que reescribir ni alterar ninguna de las reglas de validación y seguridad que ya protegían a la plataforma.
+    </p>
+    <p>
+      De igual manera, al contrastar nuestra planeación con el trabajo real, antes de programar las ampliaciones finales estimamos un esfuerzo de dieciocho horas y, al medir el tiempo real invertido, cerramos en diecisiete horas, con una desviación de apenas el 5.6 %. Como nuestra arquitectura ya conservaba cada reporte de precio de manera inmutable y auditada, desarrollar el historial de noventa días tomó menos tiempo del previsto, mientras que el principal aprendizaje técnico en el despliegue consistió en homologar los contenedores y controles de seguridad entre nuestros computadores locales en Windows y los servidores Linux en la nube».
+    </p>
+  </blockquote>
+
+  <h3 class="apa-level-3">Reflexión sobre el proceso (CMMI), impacto regional y cierre</h3>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Al reflexionar sobre nuestro proceso de desarrollo tomando como referencia modelos de madurez como CMMI, confirmamos que la calidad y la seguridad de los datos no son revisiones de último momento, sino el pilar que sostiene la confianza ciudadana en un producto digital. Si hoy iniciáramos el proyecto nuevamente, activaríamos los escáneres automáticos de seguridad en entorno Linux desde la primera semana del semestre; y como línea de evolución futura, la arquitectura ya dispone de los puntos de extensión seguros para enviar alertas personalizadas cuando un producto básico baje de precio cerca del hogar del consumidor.
+    </p>
+    <p>
+      En conclusión, Pricecol (Nuvora) demuestra que cuando una empresa y su aplicación hacen de la calidad, la neutralidad y la seguridad de los datos su mayor punto fuerte, logran un impacto social y económico tangible en nuestra región: proteger el poder adquisitivo de las familias del Quindío con información verídica y brindar a las tiendas de barrio una vitrina digital justa, segura y transparente. Muchas gracias por su visita; quedamos los cinco atentos a sus preguntas o a realizar cualquier consulta en vivo sobre la plataforma».
+    </p>
+  </blockquote>
+
+  <!-- SECCIÓN 3 -->
+  <h1 class="apa-level-1">3. Intervención Breve de Sesenta Segundos para Visitantes del Stand</h1>
+  <p>
+    Cuando un visitante se acerque al stand con tiempo limitado durante el recorrido general de la muestra académica, cualquiera de los cinco integrantes podrá emplear la siguiente síntesis de un minuto en lenguaje natural, destacando desde el primer instante nuestro punto fuerte en calidad y seguridad de los datos:
+  </p>
+  <blockquote class="apa-dialogue">
+    <p>
+      «Bienvenido a Pricecol (Nuvora), el "Waze de los precios del mercado" para Armenia y el Quindío. Es una plataforma web donde tanto los ciudadanos como las tiendas de barrio comparten y comparan precios reales de la canasta familiar para ahorrar dinero al mercar.
+    </p>
+    <p>
+      Nuestro gran punto fuerte como empresa y como aplicación es la calidad y la seguridad de los datos, porque sabemos que nadie usa un comparador si desconfía de la información. Por eso tenemos tres sellos únicos: primero, calculamos el precio exacto por cada gramo o mililitro para que nadie caiga en trampas de empaques más pequeños; segundo, protegemos tu seguridad con un escudo antifraude que bloquea precios falsos y borra automáticamente la ubicación GPS de las fotos que subes; y tercero, mostramos la gráfica de los últimos noventa días libre de manipulaciones para comprobar si un descuento es real o si fue inflado el día anterior. Si gusta, podemos buscar un producto en vivo aquí en la pantalla».
+    </p>
+  </blockquote>
+
+  <!-- SECCIÓN 4 -->
+  <h1 class="apa-level-1" style="page-break-before: always;">4. Matriz de Respuesta para la Ronda de Preguntas del Docente (5 Integrantes)</h1>
+  <p>
+    Con el propósito de asegurar el nivel de desempeño más alto en el cuarto indicador de la rúbrica institucional (Capacidad de análisis: dominio temático, capacidad de respuesta y análisis situacional, equivalente al 25 % de la calificación) y evidenciar el dominio de los cinco integrantes del equipo, en la Tabla 2 se asigna una pregunta clave de defensa técnica a cada expositor.
+  </p>
+
+  <div class="apa-table-container">
+    <p class="apa-table-number">Tabla 2</p>
+    <p class="apa-table-title">Guía de respuestas argumentadas por integrante para la defensa técnica y del diferencial en calidad y seguridad de datos</p>
+    <table class="apa-table">
+      <thead>
+        <tr>
+          <th style="width: 31%;">Pregunta de evaluación (Integrante responsable)</th>
+          <th style="width: 69%;">Respuesta argumentada (Explicación clara + Evidencia técnica del proyecto)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1. ¿Cuál es el punto fuerte o ventaja competitiva de Pricecol (Nuvora) como empresa y aplicación?<br><em>(Isabella Arias)</em></td>
+          <td>Nuestro punto fuerte es la calidad, neutralidad y seguridad de los datos colaborativos. Mientras un catálogo convencional solo almacena precios sin validarlos, Pricecol aplica un blindaje integral gobernado por ISO/IEC 25012, la Ley 1581 y controles OWASP: normaliza cada producto a su unidad base (<code>$/g</code>, <code>$/ml</code>), aplica vigencia dinámica por categoría, filtra sabotajes mediante un motor antifraude de cuatro capas, impide que las promociones compren posición en el listado y sanitiza en memoria RAM los metadatos EXIF/GPS de cada fotografía ciudadana.</td>
+        </tr>
+        <tr>
+          <td>2. ¿Por qué eligieron un Monolito Modular y cómo logran actualización inmediata con caché en Redis (EC-02)?<br><em>(Samuel Alzate)</em></td>
+          <td>En un servidor económico de 1 GB de RAM (instancia <code>e2-micro</code>), dividir el sistema en microservicios agotaría la memoria en sobrecarga de red. Con un Monolito Modular (ADR-01) mantenemos las reglas de negocio aisladas en <code>core_domain</code> con latencia interna nula. Y para la caché en Redis aplicamos versionamiento atómico de claves (ADR-02 y ADR-10): cada vez que entra un reporte o cambio oficial del comercio, la versión del producto sube en menos de 5 milisegundos, sirviendo el dato fresco al instante.</td>
+        </tr>
+        <tr>
+          <td>3. ¿Cómo se articulan los estándares ISO/IEC 25010, 25012 y la Ley 1581 para proteger al consumidor?<br><em>(María Victoria Giraldo)</em></td>
+          <td>ISO/IEC 25010:2023 gobierna la calidad del software (velocidad, capacidad de interacción, integridad y mantenibilidad), mientras que ISO/IEC 25012 asegura las dimensiones críticas del dato colaborativo: exactitud mediante el <code>UnitNormalizer</code>, actualidad con la <code>ValidityPolicy</code> y credibilidad con el <code>AnomalyDetector</code> de cuatro capas. A su vez, cumplimos la Ley 1581 verificando firmas binarias (<em>magic bytes</em>) y eliminando coordenadas GPS/EXIF en memoria RAM antes de guardar cualquier imagen (ADR-12).</td>
+        </tr>
+        <tr>
+          <td>4. ¿Por qué descartaron Event Sourcing para el historial de 90 días y cómo probaron que el Quality Gate bloquea defectos?<br><em>(Nicolás Cuervo)</em></td>
+          <td>Descartamos Event Sourcing (ADR-13) porque un reporte de precio en góndola ya es un hecho histórico inmutable; una tabla relacional <em>Append-Only</em> con índices compuestos y exclusión del 100 % de reportes <code>ANOMALOUS</code> genera la gráfica multi-tienda de 90 días en menos de 15 milisegundos. Respecto al Quality Gate (ADR-14), en la corrida Run #1 de GitHub Actions el verificador detectó el hallazgo <code>EXE001</code> en <code>manage.py</code> y bloqueó automáticamente el despliegue; tras remediarlo y pasar las 55 pruebas TDD (96.32 %), Bandit, Trivy y k6, el flujo quedó 100 % en verde (Run #4).</td>
+        </tr>
+        <tr>
+          <td>5. ¿Qué demostró el contraste entre el esfuerzo estimado y el real al evolucionar la arquitectura en el Corte 3?<br><em>(Valentina Hoyos)</em></td>
+          <td>Antes de programar (commit <code>1b1cb51</code>) estimamos 18.0 horas para las ampliaciones A2 y B2, y al cierre real invertimos 17.0 horas (-5.6 % de desviación), manteniendo un índice de impacto destructivo <code>M-09 = 0.00</code> sobre el núcleo. Esto demostró conforme a ISO/IEC 25040 y ATAM que desacoplar el núcleo de calidad y seguridad ahorra esfuerzo al agregar nuevas funciones, concentrando el aprendizaje en la paridad operativa entre entornos locales Windows y contenedores Linux.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="apa-table-note"><em>Nota.</em> Las referencias a decisiones arquitectónicas y métricas corresponden a los artefactos auditables en las carpetas <code>docs/architecture/</code> y <code>docs/quality/</code> del repositorio oficial.</p>
+  </div>
+
+  <!-- REFERENCIAS -->
+  <h1 class="apa-level-1">Referencias</h1>
+
+  <p class="apa-reference">
+    Bass, L., Clements, P., &amp; Kazman, R. (2021). <em>Software architecture in practice</em> (4th ed.). Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    Beck, K. (2003). <em>Test-driven development: By example</em>. Addison-Wesley Professional.
+  </p>
+  <p class="apa-reference">
+    CMMI Institute. (2023). <em>CMMI V3.0: Model at a glance</em>. Information Systems Audit and Control Association (ISACA).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2008). <em>Software engineering — Software product Quality Requirements and Evaluation (SQuaRE) — Data quality model</em> (ISO/IEC Standard No. 25012:2008).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2023). <em>Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model</em> (ISO/IEC Standard No. 25010:2023).
+  </p>
+  <p class="apa-reference">
+    International Organization for Standardization. (2024). <em>Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Quality evaluation framework</em> (ISO/IEC Standard No. 25040:2024).
+  </p>
+  <p class="apa-reference">
+    Richards, M., &amp; Ford, N. (2020). <em>Fundamentals of software architecture: An engineering approach</em>. O'Reilly Media.
+  </p>
+
+</body>
+</html>
